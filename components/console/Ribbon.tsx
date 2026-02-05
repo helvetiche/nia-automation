@@ -21,7 +21,9 @@ import {
   SortDescending,
   CurrencyDollar,
   ChartBar,
-  Lightning
+  Lightning,
+  Gear,
+  Warning
 } from '@phosphor-icons/react/dist/ssr';
 
 interface RibbonProps {
@@ -57,7 +59,10 @@ export default function Ribbon({
     totalCost: number;
     scannedCount: number;
     averageCostPerScan: number;
+    usageLimit: number;
   } | null>(null);
+  const [showThresholdInput, setShowThresholdInput] = useState(false);
+  const [tempThreshold, setTempThreshold] = useState(0);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -77,6 +82,31 @@ export default function Ribbon({
     await signOut(auth);
     router.push('/login');
   };
+
+  const updateUsageLimit = async (newLimit: number) => {
+    try {
+      const response = await apiCall('/api/stats', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usageLimit: newLimit }),
+      });
+
+      if (response.ok) {
+        setStats(prev => prev ? { ...prev, usageLimit: newLimit } : null);
+        setShowThresholdInput(false);
+      } else {
+        console.error('failed to update usage limit');
+      }
+    } catch (error) {
+      console.error('usage limit update failed:', error);
+    }
+  };
+
+  const currentCostPHP = stats ? stats.totalCost * 58 : 0;
+  const usageLimit = stats?.usageLimit || 1000;
+  const usagePercentage = Math.min((currentCostPHP / usageLimit) * 100, 100);
+  const isNearThreshold = usagePercentage >= 80;
+  const isOverThreshold = usagePercentage >= 100;
 
   return (
     <div className="bg-white border-b border-gray-200">
@@ -105,7 +135,7 @@ export default function Ribbon({
                   <Lightning weight="fill" className="w-4 h-4 text-emerald-600" />
                   <div>
                     <p className="text-xs text-emerald-600 font-mono font-semibold">
-                      {(stats.totalInputTokens / 1000).toFixed(1)}K
+                      {stats.totalInputTokens.toLocaleString()}
                     </p>
                     <p className="text-xs text-emerald-500">Input</p>
                   </div>
@@ -115,7 +145,7 @@ export default function Ribbon({
                   <ChartBar weight="fill" className="w-4 h-4 text-emerald-600" />
                   <div>
                     <p className="text-xs text-emerald-600 font-mono font-semibold">
-                      {(stats.totalOutputTokens / 1000).toFixed(1)}K
+                      {stats.totalOutputTokens.toLocaleString()}
                     </p>
                     <p className="text-xs text-emerald-500">Output</p>
                   </div>
@@ -125,20 +155,87 @@ export default function Ribbon({
                   <CurrencyDollar weight="fill" className="w-4 h-4 text-emerald-600" />
                   <div>
                     <p className="text-xs text-emerald-600 font-mono font-semibold">
-                      ₱{(stats.totalCost * 58).toFixed(2)}
+                      ₱{(stats.totalCost * 58).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                     <p className="text-xs text-emerald-500">Total Cost</p>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded">
-                  <div>
-                    <p className="text-xs text-emerald-700 font-mono font-semibold">
-                      {stats.scannedCount}
-                    </p>
-                    <p className="text-xs text-emerald-500">Scans</p>
+              <div className="w-px h-10 bg-gray-300 mx-2" />
+              
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-600">Usage Limit</span>
+                    <button
+                      onClick={() => setShowThresholdInput(!showThresholdInput)}
+                      className="p-1 rounded hover:bg-gray-100 transition"
+                    >
+                      <Gear weight="regular" className="w-3 h-3 text-gray-500" />
+                    </button>
+                    {isOverThreshold && (
+                      <Warning weight="fill" className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-300 ${
+                          isOverThreshold ? 'bg-red-500' : 
+                          isNearThreshold ? 'bg-yellow-500' : 
+                          'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                      />
+                    </div>
+                    <span className={`text-xs font-mono ${
+                      isOverThreshold ? 'text-red-600' : 
+                      isNearThreshold ? 'text-yellow-600' : 
+                      'text-gray-600'
+                    }`}>
+                      {usagePercentage.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500 font-mono">
+                    ₱{currentCostPHP.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ₱{usageLimit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
+
+                {showThresholdInput && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded shadow-lg">
+                    <span className="text-xs text-gray-600">₱</span>
+                    <input
+                      type="number"
+                      value={tempThreshold || usageLimit}
+                      onChange={(e) => setTempThreshold(parseFloat(e.target.value) || 0)}
+                      onBlur={() => {
+                        if (tempThreshold > 0) {
+                          updateUsageLimit(tempThreshold);
+                        } else {
+                          setShowThresholdInput(false);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && tempThreshold > 0) {
+                          updateUsageLimit(tempThreshold);
+                        }
+                        if (e.key === 'Escape') {
+                          setShowThresholdInput(false);
+                          setTempThreshold(0);
+                        }
+                      }}
+                      className="w-20 text-xs font-mono outline-none"
+                      autoFocus
+                      onFocus={(e) => {
+                        if (tempThreshold === 0) {
+                          setTempThreshold(usageLimit);
+                        }
+                        e.target.select();
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}

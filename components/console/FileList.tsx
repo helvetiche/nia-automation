@@ -31,8 +31,7 @@ import {
   Leaf,
   Plant,
   ArrowsClockwise,
-  CurrencyDollar,
-  Cpu
+  CurrencyDollar
 } from '@phosphor-icons/react';
 import type { IconWeight } from '@phosphor-icons/react';
 import { apiCall } from '@/lib/api/client';
@@ -669,19 +668,19 @@ export default function FileList({
                           <div className="flex items-center gap-1">
                             <Lightning weight="fill" className="w-3 h-3 text-emerald-600" />
                             <span className="text-xs font-mono text-gray-700">
-                              {(file.inputTokens / 1000).toFixed(1)}K
+                              {file.inputTokens.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
                             <ChartBar weight="fill" className="w-3 h-3 text-emerald-600" />
                             <span className="text-xs font-mono text-gray-700">
-                              {(file.outputTokens / 1000).toFixed(1)}K
+                              {file.outputTokens.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
                             <CurrencyDollar weight="fill" className="w-3 h-3 text-emerald-600" />
                             <span className="text-xs font-mono text-gray-700">
-                              ₱{(file.estimatedCost * 58).toFixed(2)}
+                              ₱{(file.estimatedCost * 58).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}
                             </span>
                           </div>
                         </div>

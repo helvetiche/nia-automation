@@ -29,6 +29,7 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'scanned' | 'unscanned'>('all');
   const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'date' | 'size'>('name-asc');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const loadFolders = async () => {
     try {
@@ -83,6 +84,7 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
     }
     await loadFolders();
     await loadFiles(currentFolder);
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleUploadOptimistic = (uploadedFiles: File[]) => {

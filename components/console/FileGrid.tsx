@@ -31,8 +31,7 @@ import {
   CheckSquare,
   DotsThree,
   ArrowsClockwise,
-  CurrencyDollar,
-  Cpu
+  CurrencyDollar
 } from '@phosphor-icons/react/dist/ssr';
 import type { IconWeight } from '@phosphor-icons/react';
 import { apiCall } from '@/lib/api/client';
@@ -194,6 +193,7 @@ export default function FileGrid({
           
           const startTime = Date.now();
           let completed = 0;
+          let failed = 0;
           const startIndex = queueIds.findIndex(id => id === currentlyScanning);
           const remainingIds = startIndex >= 0 ? queueIds.slice(startIndex) : queueIds;
 
@@ -201,17 +201,28 @@ export default function FileGrid({
             for (const pdfId of remainingIds) {
               setCurrentlyScanning(pdfId);
               
-              await apiCall('/api/files/scan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pdfId }),
-              });
+              try {
+                const response = await apiCall('/api/files/scan', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ pdfId }),
+                });
 
-              completed++;
+                if (!response.ok) {
+                  console.error(`scan failed for PDF ${pdfId}:`, response.status);
+                  failed++;
+                } else {
+                  completed++;
+                }
+              } catch (fileError) {
+                console.error(`scan error for PDF ${pdfId}:`, fileError);
+                failed++;
+              }
 
+              const totalProcessed = completed + failed;
               const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-              const avgTimePerFile = elapsedSeconds / completed;
-              const remainingFiles = remainingIds.length - completed;
+              const avgTimePerFile = elapsedSeconds / totalProcessed;
+              const remainingFiles = remainingIds.length - totalProcessed;
               const estimatedRemaining = Math.ceil(remainingFiles * avgTimePerFile);
               setEstimatedTimeRemaining(estimatedRemaining);
               
@@ -220,7 +231,14 @@ export default function FileGrid({
               await onRefresh();
             }
 
-            showToast('success', 'Scanning Complete', `${remainingIds.length} PDF${remainingIds.length !== 1 ? 's' : ''} scanned successfully`);
+            if (failed === 0) {
+              showToast('success', 'Scanning Complete', `${completed} PDF${completed !== 1 ? 's' : ''} scanned successfully`);
+            } else if (completed === 0) {
+              showToast('error', 'Scanning Failed', `All ${failed} PDF${failed !== 1 ? 's' : ''} failed to scan`);
+            } else {
+              showToast('warning', 'Scanning Partial', `${completed} PDF${completed !== 1 ? 's' : ''} scanned, ${failed} failed`);
+            }
+            
             setSelectedItems(new Set());
             setIsSelectMode(false);
             localStorage.removeItem('nia-scan-queue');
@@ -470,22 +488,34 @@ export default function FileGrid({
 
     const startTime = Date.now();
     let completed = 0;
+    let failed = 0;
 
     try {
       for (const pdfId of selectedPdfIds) {
         setCurrentlyScanning(pdfId);
         
-        await apiCall('/api/files/scan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pdfId }),
-        });
+        try {
+          const response = await apiCall('/api/files/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pdfId }),
+          });
 
-        completed++;
+          if (!response.ok) {
+            console.error(`scan failed for PDF ${pdfId}:`, response.status);
+            failed++;
+          } else {
+            completed++;
+          }
+        } catch (fileError) {
+          console.error(`scan error for PDF ${pdfId}:`, fileError);
+          failed++;
+        }
 
+        const totalProcessed = completed + failed;
         const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-        const avgTimePerFile = elapsedSeconds / completed;
-        const remainingFiles = selectedPdfIds.length - completed;
+        const avgTimePerFile = elapsedSeconds / totalProcessed;
+        const remainingFiles = selectedPdfIds.length - totalProcessed;
         const estimatedRemaining = Math.ceil(remainingFiles * avgTimePerFile);
         setEstimatedTimeRemaining(estimatedRemaining);
         
@@ -494,7 +524,14 @@ export default function FileGrid({
         await onRefresh();
       }
 
-      showToast('success', 'Scanning Complete', `${selectedPdfIds.length} PDF${selectedPdfIds.length !== 1 ? 's' : ''} scanned successfully`);
+      if (failed === 0) {
+        showToast('success', 'Scanning Complete', `${completed} PDF${completed !== 1 ? 's' : ''} scanned successfully`);
+      } else if (completed === 0) {
+        showToast('error', 'Scanning Failed', `All ${failed} PDF${failed !== 1 ? 's' : ''} failed to scan`);
+      } else {
+        showToast('warning', 'Scanning Partial', `${completed} PDF${completed !== 1 ? 's' : ''} scanned, ${failed} failed`);
+      }
+      
       setSelectedItems(new Set());
       setIsSelectMode(false);
       setBulkActionsMenu(false);
