@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+  import * as admin from 'firebase-admin';
 
 const initAdmin = () => {
   if (admin.apps.length === 0) {

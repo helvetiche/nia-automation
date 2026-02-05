@@ -9,6 +9,9 @@ export async function apiCall(url: string, options: RequestInit = {}) {
   const token = await user.getIdToken();
 
   const headers = {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
     ...options.headers,
     Authorization: `Bearer ${token}`,
   };

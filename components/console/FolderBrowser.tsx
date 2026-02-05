@@ -10,9 +10,16 @@ import { apiCall } from '@/lib/api/client';
 
 interface FolderBrowserProps {
   onViewPdf: (pdf: PdfFile) => void;
+  viewMode: 'grid' | 'table';
+  onViewModeChange: (mode: 'grid' | 'table') => void;
 }
 
-export default function FolderBrowser({ onViewPdf }: FolderBrowserProps) {
+const STORAGE_KEYS = {
+  viewMode: 'nia-view-mode',
+  currentFolder: 'nia-current-folder',
+};
+
+export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }: FolderBrowserProps) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<PdfFile[]>([]);
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
@@ -35,7 +42,10 @@ export default function FolderBrowser({ onViewPdf }: FolderBrowserProps) {
 
   const loadFiles = async (folderId: string | null) => {
     try {
-      const url = folderId ? `/api/files?folderId=${folderId}` : '/api/files';
+      const timestamp = Date.now();
+      const url = folderId 
+        ? `/api/files?folderId=${folderId}&t=${timestamp}` 
+        : `/api/files?t=${timestamp}`;
       const response = await apiCall(url);
       const data = await response.json();
       setFiles(data.files || []);
@@ -46,8 +56,15 @@ export default function FolderBrowser({ onViewPdf }: FolderBrowserProps) {
 
   useEffect(() => {
     const init = async () => {
+      const savedFolder = localStorage.getItem(STORAGE_KEYS.currentFolder);
+
       await loadFolders();
-      await loadFiles(null);
+      await loadFiles(savedFolder || null);
+      
+      if (savedFolder) {
+        setCurrentFolder(savedFolder);
+      }
+
       setLoading(false);
     };
     init();
@@ -55,12 +72,31 @@ export default function FolderBrowser({ onViewPdf }: FolderBrowserProps) {
 
   const selectFolder = async (folderId: string | null) => {
     setCurrentFolder(folderId);
+    localStorage.setItem(STORAGE_KEYS.currentFolder, folderId || '');
     await loadFiles(folderId);
   };
 
-  const refreshData = async () => {
+  const refreshData = async (force = false) => {
+    if (force) {
+      setFiles([]);
+      setFolders([]);
+    }
     await loadFolders();
     await loadFiles(currentFolder);
+  };
+
+  const handleUploadOptimistic = (uploadedFiles: File[]) => {
+    const newFiles: PdfFile[] = uploadedFiles.map((file) => ({
+      id: `temp-${Date.now()}-${Math.random()}`,
+      name: file.name,
+      folderId: currentFolder || '',
+      status: 'unscanned' as const,
+      uploadedAt: Date.now(),
+      storageUrl: '',
+      userId: '',
+    }));
+
+    setFiles([...files, ...newFiles]);
   };
 
   const filteredFiles = useMemo(() => {
@@ -114,6 +150,7 @@ export default function FolderBrowser({ onViewPdf }: FolderBrowserProps) {
         onFilterChange={setFilterStatus}
         sortBy={sortBy}
         onSortChange={setSortBy}
+        refreshTrigger={refreshTrigger}
       />
       
       <FileGrid
@@ -123,6 +160,10 @@ export default function FolderBrowser({ onViewPdf }: FolderBrowserProps) {
         onSelectFolder={selectFolder}
         onViewPdf={onViewPdf}
         onRefresh={refreshData}
+        onCreateFolder={() => setShowCreateFolder(true)}
+        onUploadFile={() => setShowUpload(true)}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
       />
 
       {showCreateFolder && (
@@ -138,6 +179,7 @@ export default function FolderBrowser({ onViewPdf }: FolderBrowserProps) {
           currentFolder={currentFolder}
           onClose={() => setShowUpload(false)}
           onSuccess={refreshData}
+          onUploadOptimistic={handleUploadOptimistic}
         />
       )}
     </div>

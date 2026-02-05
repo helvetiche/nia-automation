@@ -23,20 +23,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'pdf not found' }, { status: 404 });
     }
 
-    if (pdfDoc.data()?.userId !== userId) {
+    const pdfData = pdfDoc.data();
+    if (pdfData?.userId !== userId) {
       return NextResponse.json({ error: 'not authorized' }, { status: 403 });
     }
 
-    const snapshot = await adminDb()
-      .collection('pages')
-      .where('pdfId', '==', pdfId)
-      .orderBy('pageNumber', 'asc')
-      .get();
-
-    const pages = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const pages = pdfData?.extractedData || [];
 
     return NextResponse.json(
       { pages },

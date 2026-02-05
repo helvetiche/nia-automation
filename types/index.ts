@@ -5,6 +5,12 @@ export interface Folder {
   level: number;
   createdAt: number;
   userId: string;
+  color?: string;
+  icon?: string;
+  description?: string;
+  totalArea?: number;
+  totalIrrigatedArea?: number;
+  totalPlantedArea?: number;
 }
 
 export interface PdfFile {
@@ -17,12 +23,20 @@ export interface PdfFile {
   pageCount?: number;
   storageUrl: string;
   userId: string;
+  extractedData?: PdfPage[];
+  totalArea?: number;
+  totalIrrigatedArea?: number;
+  totalPlantedArea?: number;
+  confidence?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  estimatedCost?: number;
+  aiModel?: string;
 }
 
 export interface PdfPage {
-  id: string;
-  pdfId: string;
   pageNumber: number;
-  tableData: Record<string, unknown>;
-  screenshotUrl: string;
+  tableData: Record<string, unknown>[];
+  summary: string;
 }

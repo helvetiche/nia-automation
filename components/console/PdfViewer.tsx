@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import type { PdfFile, PdfPage } from '@/types';
 import { apiCall } from '@/lib/api/client';
 import Modal from '@/components/Modal';
@@ -21,6 +20,7 @@ export default function PdfViewer({ pdf, onClose }: PdfViewerProps) {
       try {
         const response = await apiCall(`/api/files/pages?pdfId=${pdf.id}`);
         const data = await response.json();
+        console.log('Loaded pages:', data.pages);
         setPages(data.pages || []);
       } catch (error) {
         console.error('page load failed:', error);
@@ -32,6 +32,10 @@ export default function PdfViewer({ pdf, onClose }: PdfViewerProps) {
   }, [pdf.id]);
 
   const page = pages.find((p) => p.pageNumber === currentPage);
+  
+  console.log('Current page:', currentPage);
+  console.log('Page data:', page);
+  console.log('Table data:', page?.tableData);
 
   return (
     <Modal
@@ -55,29 +59,60 @@ export default function PdfViewer({ pdf, onClose }: PdfViewerProps) {
             <div className="text-gray-600">Loading pages...</div>
           </div>
         ) : page ? (
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4">Extracted Data</h3>
-              <div className="bg-gray-50 rounded-lg p-4 overflow-auto">
-                <pre className="text-sm text-gray-700">
-                  {JSON.stringify(page.tableData, null, 2)}
-                </pre>
+          <div className="space-y-6">
+            {page.summary && (
+              <div>
+                <h3 className="font-bold text-gray-900 mb-4">Page Summary</h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {page.summary}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
+            
             <div>
-              <h3 className="font-bold text-gray-900 mb-4">Original Page</h3>
-              <div className="relative w-full aspect-[8.5/11] border border-gray-200 rounded-lg overflow-hidden">
-                <Image
-                  src={page.screenshotUrl}
-                  alt={`Page ${currentPage}`}
-                  fill
-                  className="object-contain"
-                />
-              </div>
+              <h3 className="font-bold text-gray-900 mb-4">Extracted Table Data</h3>
+              {page.tableData && Array.isArray(page.tableData) && page.tableData.length > 0 ? (
+                <div className="bg-white rounded-lg border border-gray-200 overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        {Object.keys(page.tableData[0]).map((key) => (
+                          <th key={key} className="px-4 py-3 text-left font-semibold text-gray-900">
+                            {key}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {page.tableData.map((row: Record<string, unknown>, idx: number) => (
+                        <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                          {Object.values(row).map((value, cellIdx) => (
+                            <td key={cellIdx} className="px-4 py-3 text-gray-700">
+                              {value === null || value === undefined || value === '' ? '--' : String(value)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-lg p-8 text-center">
+                  <p className="text-gray-600">No table data found on this page</p>
+                  <pre className="text-xs text-left mt-4 text-gray-500">
+                    {JSON.stringify(page.tableData, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
           </div>
         ) : (
-          <div className="text-center text-gray-500">No page data available</div>
+          <div className="text-center text-gray-500">
+            <p>No page data available</p>
+            <p className="text-xs mt-2">Pages loaded: {pages.length}</p>
+          </div>
         )}
       </div>
 
