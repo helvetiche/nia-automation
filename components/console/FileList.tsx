@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Folder, PdfFile } from '@/types';
 import { 
   Folder as FolderIcon,
@@ -25,23 +25,29 @@ import {
   Trash,
   ChartLineUp,
   ArrowsDownUp,
+  CaretDown,
+  CaretRight,
   FolderPlus,
   CheckCircle,
   Gauge,
   Leaf,
   Plant,
   ArrowsClockwise,
-  CurrencyDollar
+  CurrencyDollar,
+  Flag
 } from '@phosphor-icons/react';
 import type { IconWeight } from '@phosphor-icons/react';
 import { apiCall } from '@/lib/api/client';
 import DeleteFolderModal from './DeleteFolderModal';
 import MoveFolderModal from './MoveFolderModal';
 import SummaryModal from './SummaryModal';
+import SummaryViewModal from './SummaryViewModal';
 import ScanOptionsModal from './ScanOptionsModal';
 import Tooltip from '@/components/Tooltip';
 import { useToast } from '@/components/ToastContainer';
+import PdfPageModal from './PdfPageModal';
 import MovePdfModal from './MovePdfModal';
+import NoticePopover from './NoticePopover';
 
 interface FileListProps {
   folders: Folder[];
@@ -89,6 +95,17 @@ const COLOR_MAP: Record<string, string> = {
   pink: 'bg-pink-500',
 };
 
+const GRADIENT_HOVER_MAP: Record<string, string> = {
+  red: 'hover:bg-gradient-to-l hover:from-red-500/40 hover:to-transparent',
+  orange: 'hover:bg-gradient-to-l hover:from-orange-500/40 hover:to-transparent',
+  yellow: 'hover:bg-gradient-to-l hover:from-yellow-500/40 hover:to-transparent',
+  emerald: 'hover:bg-gradient-to-l hover:from-emerald-500/40 hover:to-transparent',
+  blue: 'hover:bg-gradient-to-l hover:from-blue-500/40 hover:to-transparent',
+  indigo: 'hover:bg-gradient-to-l hover:from-indigo-500/40 hover:to-transparent',
+  purple: 'hover:bg-gradient-to-l hover:from-purple-500/40 hover:to-transparent',
+  pink: 'hover:bg-gradient-to-l hover:from-pink-500/40 hover:to-transparent',
+};
+
 const TEXT_COLOR_MAP: Record<string, string> = {
   red: 'text-red-700',
   orange: 'text-orange-700',
@@ -120,6 +137,9 @@ export default function FileList({
   const [moveModal, setMoveModal] = useState<Folder | null>(null);
   const [deletedFolders, setDeletedFolders] = useState<string[]>([]);
   const [summaryModal, setSummaryModal] = useState<PdfFile | null>(null);
+  const [summaryViewModal, setSummaryViewModal] = useState<PdfFile | null>(null);
+  const [pdfPageModal, setPdfPageModal] = useState<PdfFile | null>(null);
+  const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
   const [movePdfModal, setMovePdfModal] = useState<PdfFile | null>(null);
   const [scanOptionsModal, setScanOptionsModal] = useState<PdfFile | null>(null);
   const [movedPdfs, setMovedPdfs] = useState<{ [key: string]: string }>({});
@@ -134,6 +154,14 @@ export default function FileList({
     if (typeof window === 'undefined') return 0;
     return parseInt(localStorage.getItem('nia-scan-start-time') || '0', 10);
   });
+  const [noticePopover, setNoticePopover] = useState<{
+    isOpen: boolean;
+    type: 'folder' | 'file' | 'summary';
+    id: string;
+    summaryId?: string;
+    currentNotice?: string;
+    anchorRef: React.RefObject<HTMLElement | null>;
+  } | null>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -170,14 +198,24 @@ export default function FileList({
     onToggleSelectAllPdfs(pdfIds);
   };
 
-  const scanPdf = async (pdfId: string) => {
+  const toggleSummaryExpansion = (fileId: string) => {
+    const newExpanded = new Set(expandedSummaries);
+    if (newExpanded.has(fileId)) {
+      newExpanded.delete(fileId);
+    } else {
+      newExpanded.add(fileId);
+    }
+    setExpandedSummaries(newExpanded);
+  };
+
+  const scanPdf = async (pdfId: string, scanType: 'total' | 'summary' = 'total', pageNumbers?: string) => {
     setScanning(prev => [...prev, pdfId]);
     
     try {
       const response = await apiCall('/api/files/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pdfId }),
+        body: JSON.stringify({ pdfId, scanType, pageNumbers }),
       });
 
       if (response.ok) {
@@ -336,7 +374,86 @@ export default function FileList({
     };
   };
 
+  const updateFolderNotice = async (folderId: string, notice: string) => {
+    try {
+      const response = await apiCall(`/api/folders/${folderId}/notice`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notice }),
+      });
+
+      if (response.ok) {
+        showToast('success', 'Notice Updated', notice ? 'Notice added successfully' : 'Notice removed');
+        onRefresh();
+      } else {
+        showToast('error', 'Update failed', 'Could not update notice');
+      }
+    } catch (error) {
+      console.error('folder notice update failed:', error);
+      showToast('error', 'Update failed', 'Could not update notice');
+    }
+  };
+
+  const updateFileNotice = async (fileId: string, notice: string, summaryId?: string) => {
+    try {
+      const response = await apiCall(`/api/files/${fileId}/notice`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notice, summaryId }),
+      });
+
+      if (response.ok) {
+        showToast('success', 'Notice Updated', notice ? 'Notice added successfully' : 'Notice removed');
+        onRefresh();
+      } else {
+        showToast('error', 'Update failed', 'Could not update notice');
+      }
+    } catch (error) {
+      console.error('file notice update failed:', error);
+      showToast('error', 'Update failed', 'Could not update notice');
+    }
+  };
+
+  const openNoticePopover = (
+    type: 'folder' | 'file' | 'summary',
+    id: string,
+    currentNotice: string = '',
+    anchorRef: React.RefObject<HTMLElement | null>,
+    summaryId?: string
+  ) => {
+    setNoticePopover({
+      isOpen: true,
+      type,
+      id,
+      summaryId,
+      currentNotice,
+      anchorRef
+    });
+  };
+
+  const saveNotice = (notice: string) => {
+    if (!noticePopover) return;
+
+    if (noticePopover.type === 'folder') {
+      updateFolderNotice(noticePopover.id, notice);
+    } else {
+      updateFileNotice(noticePopover.id, notice, noticePopover.summaryId);
+    }
+  };
+
   const visibleFolders = folders.filter(f => !deletedFolders.includes(f.id));
+  const summaryFiles = files.filter(file => 
+    !movedPdfs[file.id] && 
+    !deletedPdfs.includes(file.id) && 
+    file.status === 'summary-scanned' && 
+    file.summaryData && 
+    file.summaryData.length > 0
+  );
+  const regularFiles = files.filter(file => 
+    !movedPdfs[file.id] && 
+    !deletedPdfs.includes(file.id) && 
+    file.status !== 'summary-scanned'
+  );
 
   return (
     <div className="space-y-6">
@@ -386,6 +503,7 @@ export default function FileList({
                 const IconComponent = (ICON_MAP[folder.icon || 'Folder'] || FolderIcon) as React.ComponentType<{ weight?: IconWeight; className?: string }>;
                 const colorClass = COLOR_MAP[folder.color || 'blue'] || 'bg-blue-500';
                 const textColor = TEXT_COLOR_MAP[folder.color || 'blue'] || 'text-blue-700';
+                const folderNoticeRef = useRef<HTMLButtonElement>(null);
                 
                 const subfolderCount = allFolders.filter(f => f.parentId === folder.id).length;
                 const fileCount = files.filter(f => f.folderId === folder.id).length;
@@ -394,9 +512,14 @@ export default function FileList({
                   totalIrrigatedArea: folder.totalIrrigatedArea || 0,
                   totalPlantedArea: folder.totalPlantedArea || 0
                 };
+
+                const hasNotice = folder.notice && folder.notice.trim().length > 0;
+                const rowClassName = hasNotice 
+                  ? `transition bg-gradient-to-l from-orange-100/60 to-transparent hover:from-orange-200/80 hover:to-transparent`
+                  : `transition ${GRADIENT_HOVER_MAP[folder.color || 'blue'] || 'hover:bg-gradient-to-l hover:from-blue-500/40 hover:to-transparent'}`;
                 
                 return (
-                  <tr key={folder.id} className="hover:bg-gray-50 transition">
+                  <tr key={folder.id} className={rowClassName}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded ${colorClass} flex items-center justify-center flex-shrink-0`}>
@@ -432,6 +555,19 @@ export default function FileList({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
+                        <Tooltip 
+                          title={hasNotice ? "View Notice" : "Add Notice"}
+                          description={hasNotice ? folder.notice || '' : "Add a notice to this folder"}
+                          icon={<Flag weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            ref={folderNoticeRef}
+                            onClick={() => openNoticePopover('folder', folder.id, folder.notice || '', folderNoticeRef)}
+                            className={`p-1.5 rounded hover:bg-gray-100 transition ${hasNotice ? 'text-orange-500' : textColor}`}
+                          >
+                            <Flag weight={hasNotice ? "fill" : "regular"} className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                         <Tooltip 
                           title="Sync" 
                           description="Calculate totals for files in this folder"
@@ -494,7 +630,372 @@ export default function FileList({
         </div>
       )}
 
-      {files.length > 0 && (
+      {summaryFiles.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900">Summary Scanned Files</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <FilePdf weight="regular" className="w-4 h-4" />
+                    Name
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <Leaf weight="regular" className="w-4 h-4" />
+                    Associations
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <Gauge weight="regular" className="w-4 h-4" />
+                    Total Area
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <CurrencyDollar weight="regular" className="w-4 h-4" />
+                    Usage
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <Gauge weight="regular" className="w-4 h-4" />
+                    Confidence
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {summaryFiles.flatMap((file) => {
+                const parentFolder = allFolders.find(f => f.id === file.folderId);
+                const fileColor = parentFolder?.color || 'red';
+                const colorClass = COLOR_MAP[fileColor] || 'bg-red-500';
+                const textColor = TEXT_COLOR_MAP[fileColor] || 'text-red-700';
+                const summaryNoticeRef = useRef<HTMLButtonElement>(null);
+
+                const hasNotice = file.notice && file.notice.trim().length > 0;
+                const rowClassName = hasNotice 
+                  ? `transition bg-gradient-to-l from-orange-100/60 to-transparent hover:from-orange-200/80 hover:to-transparent`
+                  : `transition ${GRADIENT_HOVER_MAP[fileColor] || 'hover:bg-gradient-to-l hover:from-red-500/40 hover:to-transparent'}`;
+                
+                const mainRow = (
+                  <tr key={file.id} className={rowClassName}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => toggleSummaryExpansion(file.id)}
+                          className="p-1 hover:bg-gray-100 rounded transition"
+                        >
+                          {expandedSummaries.has(file.id) ? (
+                            <CaretDown weight="regular" className="w-4 h-4 text-gray-600" />
+                          ) : (
+                            <CaretRight weight="regular" className="w-4 h-4 text-gray-600" />
+                          )}
+                        </button>
+                        <div className={`w-8 h-8 rounded ${colorClass} flex items-center justify-center flex-shrink-0`}>
+                          <FilePdf weight="regular" className="w-4 h-4 text-white" />
+                        </div>
+                        <p className="font-medium text-gray-900">{file.name}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-gray-900">
+                        {file.summaryData?.length || 0} Associations
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-gray-900">
+                        {file.summaryData ? file.summaryData.reduce((sum, assoc) => sum + assoc.totalArea, 0).toFixed(2) : '--'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {file.inputTokens && file.outputTokens && file.estimatedCost ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <ChartBar weight="fill" className={`w-3 h-3 ${
+                              fileColor === 'red' ? 'text-red-600' :
+                              fileColor === 'orange' ? 'text-orange-600' :
+                              fileColor === 'yellow' ? 'text-yellow-600' :
+                              fileColor === 'emerald' ? 'text-emerald-600' :
+                              fileColor === 'blue' ? 'text-blue-600' :
+                              fileColor === 'indigo' ? 'text-indigo-600' :
+                              fileColor === 'purple' ? 'text-purple-600' :
+                              'text-pink-600'
+                            }`} />
+                            <span className="text-xs font-mono text-gray-700">
+                              {file.inputTokens.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <ChartBar weight="fill" className={`w-3 h-3 ${
+                              fileColor === 'red' ? 'text-red-600' :
+                              fileColor === 'orange' ? 'text-orange-600' :
+                              fileColor === 'yellow' ? 'text-yellow-600' :
+                              fileColor === 'emerald' ? 'text-emerald-600' :
+                              fileColor === 'blue' ? 'text-blue-600' :
+                              fileColor === 'indigo' ? 'text-indigo-600' :
+                              fileColor === 'purple' ? 'text-purple-600' :
+                              'text-pink-600'
+                            }`} />
+                            <span className="text-xs font-mono text-gray-700">
+                              {file.outputTokens.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <CurrencyDollar weight="fill" className={`w-3 h-3 ${
+                              fileColor === 'red' ? 'text-red-600' :
+                              fileColor === 'orange' ? 'text-orange-600' :
+                              fileColor === 'yellow' ? 'text-yellow-600' :
+                              fileColor === 'emerald' ? 'text-emerald-600' :
+                              fileColor === 'blue' ? 'text-blue-600' :
+                              fileColor === 'indigo' ? 'text-indigo-600' :
+                              fileColor === 'purple' ? 'text-purple-600' :
+                              'text-pink-600'
+                            }`} />
+                            <span className="text-xs font-mono text-gray-700">
+                              ₱{(file.estimatedCost * 58).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">--</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {file.confidence !== undefined ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${
+                                file.confidence >= 80 ? (
+                                  fileColor === 'red' ? 'bg-red-500' :
+                                  fileColor === 'orange' ? 'bg-orange-500' :
+                                  fileColor === 'yellow' ? 'bg-yellow-500' :
+                                  fileColor === 'emerald' ? 'bg-emerald-500' :
+                                  fileColor === 'blue' ? 'bg-blue-500' :
+                                  fileColor === 'indigo' ? 'bg-indigo-500' :
+                                  fileColor === 'purple' ? 'bg-purple-500' :
+                                  'bg-pink-500'
+                                ) : file.confidence >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${file.confidence}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-mono text-gray-600">{file.confidence}%</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">--</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip 
+                          title={hasNotice ? "View Notice" : "Add Notice"}
+                          description={hasNotice ? file.notice || '' : "Add a notice to this file"}
+                          icon={<Flag weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            ref={summaryNoticeRef}
+                            onClick={() => openNoticePopover('file', file.id, file.notice || '', summaryNoticeRef)}
+                            className={`p-1.5 rounded hover:bg-gray-100 transition ${hasNotice ? 'text-orange-500' : textColor}`}
+                          >
+                            <Flag weight={hasNotice ? "fill" : "regular"} className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip 
+                          title="View Associations" 
+                          description="View detailed irrigation associations data"
+                          icon={<Eye weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            onClick={() => setSummaryViewModal(file)}
+                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
+                          >
+                            <Eye weight="regular" className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip 
+                          title="View Pages" 
+                          description="View the PDF pages that were scanned"
+                          icon={<FilePdf weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            onClick={() => setPdfPageModal(file)}
+                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
+                          >
+                            <FilePdf weight="regular" className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip 
+                          title="Move" 
+                          description="Move this file to another folder"
+                          icon={<ArrowsDownUp weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            onClick={() => setMovePdfModal(file)}
+                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
+                          >
+                            <ArrowsDownUp weight="regular" className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip 
+                          title="Rescan" 
+                          description="Re-extract data from this PDF"
+                          icon={<ScanSmiley weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            onClick={() => setScanOptionsModal(file)}
+                            disabled={scanning.includes(file.id) || batchScanning}
+                            className={`p-1.5 rounded hover:bg-gray-100 transition disabled:opacity-50 ${textColor}`}
+                          >
+                            <ScanSmiley weight="regular" className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip 
+                          title="Delete" 
+                          description="Remove this file permanently"
+                          icon={<Trash weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            onClick={() => deletePdf(file.id, file.name)}
+                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
+                          >
+                            <Trash weight="regular" className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    </td>
+                  </tr>
+                );
+
+                const subRows = file.summaryData && expandedSummaries.has(file.id) 
+                  ? file.summaryData.map((association, index) => {
+                      const associationNoticeRef = useRef<HTMLButtonElement>(null);
+                      const hasAssociationNotice = association.notice && association.notice.trim().length > 0;
+                      const subRowClassName = hasAssociationNotice 
+                        ? `bg-gradient-to-l from-orange-100/40 to-gray-50 hover:from-orange-200/60 hover:to-gray-100 transition`
+                        : `bg-gray-50 hover:bg-gray-100 transition`;
+
+                      return (
+                        <tr key={`${file.id}-sub-${index}`} className={subRowClassName}>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-3 pl-8">
+                              <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 ${
+                                fileColor === 'red' ? 'bg-red-100' :
+                                fileColor === 'orange' ? 'bg-orange-100' :
+                                fileColor === 'yellow' ? 'bg-yellow-100' :
+                                fileColor === 'emerald' ? 'bg-emerald-100' :
+                                fileColor === 'blue' ? 'bg-blue-100' :
+                                fileColor === 'indigo' ? 'bg-indigo-100' :
+                                fileColor === 'purple' ? 'bg-purple-100' :
+                                'bg-pink-100'
+                              }`}>
+                                <Leaf weight="regular" className={`w-3 h-3 ${
+                                  fileColor === 'red' ? 'text-red-600' :
+                                  fileColor === 'orange' ? 'text-orange-600' :
+                                  fileColor === 'yellow' ? 'text-yellow-600' :
+                                  fileColor === 'emerald' ? 'text-emerald-600' :
+                                  fileColor === 'blue' ? 'text-blue-600' :
+                                  fileColor === 'indigo' ? 'text-indigo-600' :
+                                  fileColor === 'purple' ? 'text-purple-600' :
+                                  'text-pink-600'
+                                }`} />
+                              </div>
+                              <p className="text-sm font-medium text-gray-700">{association.name}</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-mono ${
+                              fileColor === 'red' ? 'bg-red-50 text-red-700' :
+                              fileColor === 'orange' ? 'bg-orange-50 text-orange-700' :
+                              fileColor === 'yellow' ? 'bg-yellow-50 text-yellow-700' :
+                              fileColor === 'emerald' ? 'bg-emerald-50 text-emerald-700' :
+                              fileColor === 'blue' ? 'bg-blue-50 text-blue-700' :
+                              fileColor === 'indigo' ? 'bg-indigo-50 text-indigo-700' :
+                              fileColor === 'purple' ? 'bg-purple-50 text-purple-700' :
+                              'bg-pink-50 text-pink-700'
+                            }`}>
+                              <div className={`w-1.5 h-1.5 rounded-full ${
+                                fileColor === 'red' ? 'bg-red-500' :
+                                fileColor === 'orange' ? 'bg-orange-500' :
+                                fileColor === 'yellow' ? 'bg-yellow-500' :
+                                fileColor === 'emerald' ? 'bg-emerald-500' :
+                                fileColor === 'blue' ? 'bg-blue-500' :
+                                fileColor === 'indigo' ? 'bg-indigo-500' :
+                                fileColor === 'purple' ? 'bg-purple-500' :
+                                'bg-pink-500'
+                              }`} />
+                              Association
+                            </span>
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className="font-mono text-gray-900 text-sm">
+                              {association.totalArea.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className="font-mono text-gray-700 text-sm">
+                              {association.usage}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-12 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full ${
+                                    association.confidence >= 80 ? (
+                                      fileColor === 'red' ? 'bg-red-500' :
+                                      fileColor === 'orange' ? 'bg-orange-500' :
+                                      fileColor === 'yellow' ? 'bg-yellow-500' :
+                                      fileColor === 'emerald' ? 'bg-emerald-500' :
+                                      fileColor === 'blue' ? 'bg-blue-500' :
+                                      fileColor === 'indigo' ? 'bg-indigo-500' :
+                                      fileColor === 'purple' ? 'bg-purple-500' :
+                                      'bg-pink-500'
+                                    ) : association.confidence >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${association.confidence}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-mono text-gray-600">{association.confidence}%</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center justify-end">
+                              <Tooltip 
+                                title={hasAssociationNotice ? "View Notice" : "Add Notice"}
+                                description={hasAssociationNotice ? association.notice || '' : "Add a notice to this association"}
+                                icon={<Flag weight="regular" className="w-4 h-4" />}
+                              >
+                                <button
+                                  ref={associationNoticeRef}
+                                  onClick={() => openNoticePopover('summary', file.id, association.notice || '', associationNoticeRef, association.id)}
+                                  className={`p-1.5 rounded hover:bg-gray-100 transition ${hasAssociationNotice ? 'text-orange-500' : textColor}`}
+                                >
+                                  <Flag weight={hasAssociationNotice ? "fill" : "regular"} className="w-3 h-3" />
+                                </button>
+                              </Tooltip>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  : [];
+
+                return [mainRow, ...subRows];
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {regularFiles.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
             <h3 className="text-sm font-semibold text-gray-900">PDF Files</h3>
@@ -506,8 +1007,11 @@ export default function FileList({
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                     <input
                       type="checkbox"
-                      checked={files.filter(file => !movedPdfs[file.id]).length > 0 && files.filter(file => !movedPdfs[file.id]).every(file => selectedPdfs.has(file.id)) ? true : false}
-                      onChange={toggleSelectAll}
+                      checked={regularFiles.length > 0 && regularFiles.every(file => selectedPdfs.has(file.id)) ? true : false}
+                      onChange={() => {
+                        const pdfIds = regularFiles.map(file => file.id);
+                        onToggleSelectAllPdfs(pdfIds);
+                      }}
                       className="w-5 h-5 rounded border-gray-300 text-emerald-800 cursor-pointer"
                     />
                   </th>
@@ -564,16 +1068,22 @@ export default function FileList({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {files.filter(file => !movedPdfs[file.id] && !deletedPdfs.includes(file.id)).map((file) => {
+              {regularFiles.map((file) => {
                 const parentFolder = allFolders.find(f => f.id === file.folderId);
                 const fileColor = parentFolder?.color || 'red';
                 const colorClass = COLOR_MAP[fileColor] || 'bg-red-500';
                 const textColor = TEXT_COLOR_MAP[fileColor] || 'text-red-700';
+                const regularNoticeRef = useRef<HTMLButtonElement>(null);
                 
                 const { totalArea, totalIrrigatedArea, totalPlantedArea } = calculateTotals(file);
+
+                const hasNotice = file.notice && file.notice.trim().length > 0;
+                const rowClassName = hasNotice 
+                  ? `transition bg-gradient-to-l from-orange-100/60 to-transparent hover:from-orange-200/80 hover:to-transparent`
+                  : `transition ${GRADIENT_HOVER_MAP[fileColor] || 'hover:bg-gradient-to-l hover:from-red-500/40 hover:to-transparent'}`;
                 
                 return (
-                  <tr key={file.id} className="hover:bg-gray-50 transition">
+                  <tr key={file.id} className={rowClassName}>
                     {isSelectMode && (
                       <td className="px-4 py-3">
                         <input
@@ -638,7 +1148,7 @@ export default function FileList({
                           <div className={`w-1.5 h-1.5 rounded-full ${
                             file.status === 'scanned' ? 'bg-emerald-600' : 'bg-gray-400'
                           }`} />
-                          {file.status === 'scanned' ? 'Scanned' : 'Unscanned'}
+                          {file.status === 'scanned' ? 'Total Scanned' : 'Unscanned'}
                         </span>
                       )}
                     </td>
@@ -663,22 +1173,49 @@ export default function FileList({
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {file.status === 'scanned' && file.inputTokens && file.outputTokens && file.estimatedCost ? (
+                      {(file.status === 'scanned') && file.inputTokens && file.outputTokens && file.estimatedCost ? (
                         <div className="space-y-1">
                           <div className="flex items-center gap-1">
-                            <Lightning weight="fill" className="w-3 h-3 text-emerald-600" />
+                            <ChartBar weight="fill" className={`w-3 h-3 ${
+                              fileColor === 'red' ? 'text-red-600' :
+                              fileColor === 'orange' ? 'text-orange-600' :
+                              fileColor === 'yellow' ? 'text-yellow-600' :
+                              fileColor === 'emerald' ? 'text-emerald-600' :
+                              fileColor === 'blue' ? 'text-blue-600' :
+                              fileColor === 'indigo' ? 'text-indigo-600' :
+                              fileColor === 'purple' ? 'text-purple-600' :
+                              'text-pink-600'
+                            }`} />
                             <span className="text-xs font-mono text-gray-700">
                               {file.inputTokens.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <ChartBar weight="fill" className="w-3 h-3 text-emerald-600" />
+                            <ChartBar weight="fill" className={`w-3 h-3 ${
+                              fileColor === 'red' ? 'text-red-600' :
+                              fileColor === 'orange' ? 'text-orange-600' :
+                              fileColor === 'yellow' ? 'text-yellow-600' :
+                              fileColor === 'emerald' ? 'text-emerald-600' :
+                              fileColor === 'blue' ? 'text-blue-600' :
+                              fileColor === 'indigo' ? 'text-indigo-600' :
+                              fileColor === 'purple' ? 'text-purple-600' :
+                              'text-pink-600'
+                            }`} />
                             <span className="text-xs font-mono text-gray-700">
                               {file.outputTokens.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <CurrencyDollar weight="fill" className="w-3 h-3 text-emerald-600" />
+                            <CurrencyDollar weight="fill" className={`w-3 h-3 ${
+                              fileColor === 'red' ? 'text-red-600' :
+                              fileColor === 'orange' ? 'text-orange-600' :
+                              fileColor === 'yellow' ? 'text-yellow-600' :
+                              fileColor === 'emerald' ? 'text-emerald-600' :
+                              fileColor === 'blue' ? 'text-blue-600' :
+                              fileColor === 'indigo' ? 'text-indigo-600' :
+                              fileColor === 'purple' ? 'text-purple-600' :
+                              'text-pink-600'
+                            }`} />
                             <span className="text-xs font-mono text-gray-700">
                               ₱{(file.estimatedCost * 58).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}
                             </span>
@@ -694,9 +1231,16 @@ export default function FileList({
                           <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                             <div 
                               className={`h-full ${
-                                file.confidence >= 80 ? 'bg-emerald-500' : 
-                                file.confidence >= 60 ? 'bg-yellow-500' : 
-                                'bg-red-500'
+                                file.confidence >= 80 ? (
+                                  fileColor === 'red' ? 'bg-red-500' :
+                                  fileColor === 'orange' ? 'bg-orange-500' :
+                                  fileColor === 'yellow' ? 'bg-yellow-500' :
+                                  fileColor === 'emerald' ? 'bg-emerald-500' :
+                                  fileColor === 'blue' ? 'bg-blue-500' :
+                                  fileColor === 'indigo' ? 'bg-indigo-500' :
+                                  fileColor === 'purple' ? 'bg-purple-500' :
+                                  'bg-pink-500'
+                                ) : file.confidence >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                               }`}
                               style={{ width: `${file.confidence}%` }}
                             />
@@ -709,6 +1253,19 @@ export default function FileList({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
+                        <Tooltip 
+                          title={hasNotice ? "View Notice" : "Add Notice"}
+                          description={hasNotice ? file.notice || '' : "Add a notice to this file"}
+                          icon={<Flag weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            ref={regularNoticeRef}
+                            onClick={() => openNoticePopover('file', file.id, file.notice || '', regularNoticeRef)}
+                            className={`p-1.5 rounded hover:bg-gray-100 transition ${hasNotice ? 'text-orange-500' : textColor}`}
+                          >
+                            <Flag weight={hasNotice ? "fill" : "regular"} className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                         <Tooltip 
                           title="View" 
                           description="Open and view extracted table data"
@@ -735,6 +1292,18 @@ export default function FileList({
                             </button>
                           </Tooltip>
                         )}
+                        <Tooltip 
+                          title="View Pages" 
+                          description="View the PDF pages"
+                          icon={<FilePdf weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            onClick={() => setPdfPageModal(file)}
+                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
+                          >
+                            <FilePdf weight="regular" className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                         <Tooltip 
                           title="Move" 
                           description="Move this file to another folder"
@@ -782,7 +1351,7 @@ export default function FileList({
         </div>
       )}
 
-      {visibleFolders.length === 0 && files.length === 0 && (
+      {visibleFolders.length === 0 && summaryFiles.length === 0 && regularFiles.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <FolderIcon weight="regular" className="w-16 h-16 mx-auto mb-4 text-gray-300" />
           <p>This folder is empty</p>
@@ -832,7 +1401,36 @@ export default function FileList({
           isOpen={true}
           onClose={() => setScanOptionsModal(null)}
           pdfName={scanOptionsModal.name}
-          onConfirm={() => scanPdf(scanOptionsModal.id)}
+          onConfirm={(scanType, pageNumbers) => scanPdf(scanOptionsModal.id, scanType, pageNumbers)}
+        />
+      )}
+
+      {summaryViewModal && (
+        <SummaryViewModal
+          isOpen={true}
+          onClose={() => setSummaryViewModal(null)}
+          file={summaryViewModal}
+        />
+      )}
+
+      {pdfPageModal && (
+        <PdfPageModal
+          isOpen={true}
+          onClose={() => setPdfPageModal(null)}
+          pdfUrl={`/api/files/${pdfPageModal.id}/pdf`}
+          scannedPages={pdfPageModal.scanType === 'summary' ? 
+            pdfPageModal.pageNumbers : undefined}
+          fileName={pdfPageModal.name}
+        />
+      )}
+
+      {noticePopover && (
+        <NoticePopover
+          isOpen={noticePopover.isOpen}
+          onClose={() => setNoticePopover(null)}
+          onSave={saveNotice}
+          currentNotice={noticePopover.currentNotice}
+          anchorRef={noticePopover.anchorRef}
         />
       )}
     </div>

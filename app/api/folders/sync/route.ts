@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
       .collection('pdfs')
       .where('userId', '==', userId)
       .where('folderId', '==', folderId)
-      .where('status', '==', 'scanned')
       .get();
 
     const files: PdfFile[] = filesSnapshot.docs.map((doc) => ({
@@ -43,21 +42,28 @@ export async function POST(request: NextRequest) {
       ...doc.data(),
     } as PdfFile));
 
-    console.log(`Found ${files.length} scanned files in folder`);
+    console.log(`Found ${files.length} files in folder`);
 
     let totalArea = 0;
     let totalIrrigatedArea = 0;
     let totalPlantedArea = 0;
 
     for (const file of files) {
-      console.log(`File: ${file.name}`);
-      console.log(`  - totalArea: ${file.totalArea}`);
-      console.log(`  - totalIrrigatedArea: ${file.totalIrrigatedArea}`);
-      console.log(`  - totalPlantedArea: ${file.totalPlantedArea}`);
+      console.log(`File: ${file.name} (${file.status})`);
       
-      if (file.totalArea) totalArea += file.totalArea;
-      if (file.totalIrrigatedArea) totalIrrigatedArea += file.totalIrrigatedArea;
-      if (file.totalPlantedArea) totalPlantedArea += file.totalPlantedArea;
+      if (file.status === 'scanned') {
+        console.log(`  - totalArea: ${file.totalArea}`);
+        console.log(`  - totalIrrigatedArea: ${file.totalIrrigatedArea}`);
+        console.log(`  - totalPlantedArea: ${file.totalPlantedArea}`);
+        
+        if (file.totalArea) totalArea += file.totalArea;
+        if (file.totalIrrigatedArea) totalIrrigatedArea += file.totalIrrigatedArea;
+        if (file.totalPlantedArea) totalPlantedArea += file.totalPlantedArea;
+      } else if (file.status === 'summary-scanned' && file.summaryData) {
+        const summaryTotalArea = file.summaryData.reduce((sum, assoc) => sum + assoc.totalArea, 0);
+        console.log(`  - summaryTotalArea: ${summaryTotalArea} (from ${file.summaryData.length} associations)`);
+        totalArea += summaryTotalArea;
+      }
     }
 
     console.log(`Folder totals - Area: ${totalArea}, Irrigated: ${totalIrrigatedArea}, Planted: ${totalPlantedArea}`);

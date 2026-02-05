@@ -15,11 +15,17 @@ export function calculateFolderTotals(
   let totalIrrigatedArea = 0;
   let totalPlantedArea = 0;
 
-  const pdfsInFolder = allFiles.filter(file => file.folderId === folderId && file.status === 'scanned');
+  const pdfsInFolder = allFiles.filter(file => file.folderId === folderId);
+  
   pdfsInFolder.forEach(pdf => {
-    if (pdf.totalArea) totalArea += pdf.totalArea;
-    if (pdf.totalIrrigatedArea) totalIrrigatedArea += pdf.totalIrrigatedArea;
-    if (pdf.totalPlantedArea) totalPlantedArea += pdf.totalPlantedArea;
+    if (pdf.status === 'scanned') {
+      if (pdf.totalArea) totalArea += pdf.totalArea;
+      if (pdf.totalIrrigatedArea) totalIrrigatedArea += pdf.totalIrrigatedArea;
+      if (pdf.totalPlantedArea) totalPlantedArea += pdf.totalPlantedArea;
+    } else if (pdf.status === 'summary-scanned' && pdf.summaryData) {
+      const summaryTotalArea = pdf.summaryData.reduce((sum, assoc) => sum + assoc.totalArea, 0);
+      totalArea += summaryTotalArea;
+    }
   });
 
   const subfolders = allFolders.filter(folder => folder.parentId === folderId);

@@ -39,9 +39,12 @@ import ContextMenu from './ContextMenu';
 import DeleteFolderModal from './DeleteFolderModal';
 import MoveFolderModal from './MoveFolderModal';
 import SummaryModal from './SummaryModal';
+import SummaryViewModal from './SummaryViewModal';
+import ScanOptionsModal from './ScanOptionsModal';
 import Tooltip from '@/components/Tooltip';
 import { useToast } from '@/components/ToastContainer';
 import FileList from './FileList';
+import BulkScanModal from './BulkScanModal';
 import BulkMovePdfModal from './BulkMovePdfModal';
 
 interface FileGridProps {
@@ -138,11 +141,14 @@ export default function FileGrid({
   const [moveModal, setMoveModal] = useState<Folder | null>(null);
   const [deletedFolders, setDeletedFolders] = useState<string[]>([]);
   const [summaryModal, setSummaryModal] = useState<PdfFile | null>(null);
+  const [summaryViewModal, setSummaryViewModal] = useState<PdfFile | null>(null);
+  const [scanOptionsModal, setScanOptionsModal] = useState<{ id: string; name: string } | null>(null);
   const [deletedPdfs, setDeletedPdfs] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [bulkActionsMenu, setBulkActionsMenu] = useState(false);
   const [bulkMoveModal, setBulkMoveModal] = useState(false);
+  const [bulkScanModal, setBulkScanModal] = useState(false);
   const [syncingFolders, setSyncingFolders] = useState<Set<string>>(new Set());
   const [batchScanning, setBatchScanning] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -289,14 +295,14 @@ export default function FileGrid({
   const currentFolderData = folders.find((f) => f.id === currentFolder);
   const subfolders = folders.filter((f) => f.parentId === currentFolder && !deletedFolders.includes(f.id));
 
-  const scanPdf = async (pdfId: string) => {
+  const scanPdf = async (pdfId: string, scanType: 'total' | 'summary' = 'total', pageNumbers?: string) => {
     setScanning([...scanning, pdfId]);
     
     try {
       const response = await apiCall('/api/files/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pdfId }),
+        body: JSON.stringify({ pdfId, scanType, pageNumbers }),
       });
 
       if (response.ok) {
@@ -478,7 +484,7 @@ export default function FileGrid({
     }
   };
 
-  const batchScanPdfs = async () => {
+  const batchScanPdfs = async (scanType: 'total' | 'summary' = 'total', pageNumbers?: string) => {
     const selectedPdfIds = Array.from(selectedItems);
     if (selectedPdfIds.length === 0) return;
 
@@ -498,7 +504,7 @@ export default function FileGrid({
           const response = await apiCall('/api/files/scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pdfId }),
+            body: JSON.stringify({ pdfId, scanType, pageNumbers }),
           });
 
           if (!response.ok) {
@@ -625,7 +631,7 @@ export default function FileGrid({
                 >
                   <button
                     onClick={() => {
-                      batchScanPdfs();
+                      setBulkScanModal(true);
                       setBulkActionsMenu(false);
                     }}
                     disabled={batchScanning}
@@ -918,7 +924,12 @@ export default function FileGrid({
                       {file.status === 'scanned' ? (
                         <>
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                          Scanned
+                          Total Scanned
+                        </>
+                      ) : file.status === 'summary-scanned' ? (
+                        <>
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                          Summary Scanned
                         </>
                       ) : (
                         <>
@@ -931,6 +942,12 @@ export default function FileGrid({
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono ${pillColors.bg} ${pillColors.text} ${pillColors.border}`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${colorClass}`} />
                         {file.pageCount} {file.pageCount === 1 ? 'Page' : 'Pages'}
+                      </span>
+                    )}
+                    {file.status === 'summary-scanned' && file.summaryData && (
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono ${pillColors.bg} ${pillColors.text} ${pillColors.border}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${colorClass}`} />
+                        {file.summaryData.length} Associations
                       </span>
                     )}
                   </div>
@@ -956,8 +973,33 @@ export default function FileGrid({
                   )}
                 </div>
               )}
+
+              {file.status === 'summary-scanned' && file.summaryData && file.summaryData.length > 0 && (
+                <div className="relative mb-3">
+                  <div className="text-xs font-semibold text-gray-700 mb-2">
+                    Irrigation Associations ({file.summaryData.length})
+                  </div>
+                  <div className="space-y-1 max-h-20 overflow-y-auto">
+                    {file.summaryData.slice(0, 3).map((assoc, index) => (
+                      <div key={assoc.id} className="flex justify-between items-center text-xs">
+                        <span className="font-mono text-gray-600 truncate flex-1 mr-2">
+                          {assoc.name}
+                        </span>
+                        <span className="font-semibold text-gray-900">
+                          {assoc.totalArea.toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                    {file.summaryData.length > 3 && (
+                      <div className="text-xs text-gray-500 font-mono">
+                        +{file.summaryData.length - 3} more associations
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               
-              {file.status === 'scanned' && file.confidence !== undefined && (
+              {(file.status === 'scanned' || file.status === 'summary-scanned') && file.confidence !== undefined && (
                 <div className="relative">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-mono text-gray-600">Confidence</span>
@@ -976,7 +1018,7 @@ export default function FileGrid({
                 </div>
               )}
 
-              {file.status === 'scanned' && file.inputTokens && file.outputTokens && file.estimatedCost && (
+              {(file.status === 'scanned' || file.status === 'summary-scanned') && file.inputTokens && file.outputTokens && file.estimatedCost && (
                 <div className="relative mt-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-mono text-gray-600">Usage</span>
@@ -1014,7 +1056,13 @@ export default function FileGrid({
                   icon={<Eye weight="regular" className="w-4 h-4" />}
                 >
                   <button
-                    onClick={() => onViewPdf(file)}
+                    onClick={() => {
+                      if (file.status === 'summary-scanned') {
+                        setSummaryViewModal(file);
+                      } else {
+                        onViewPdf(file);
+                      }
+                    }}
                     className={`p-2 bg-white rounded-lg hover:bg-gray-50 transition ${textColor}`}
                   >
                     <Eye weight="regular" className="w-4 h-4" />
@@ -1034,14 +1082,28 @@ export default function FileGrid({
                     </button>
                   </Tooltip>
                 )}
-                {file.status === 'scanned' && (
+                {file.status === 'summary-scanned' && file.summaryData && (
+                  <Tooltip 
+                    title="View Associations" 
+                    description="View detailed irrigation associations data"
+                    icon={<ChartLineUp weight="regular" className="w-4 h-4" />}
+                  >
+                    <button
+                      onClick={() => setSummaryViewModal(file)}
+                      className={`p-2 bg-white rounded-lg hover:bg-gray-50 transition ${textColor}`}
+                    >
+                      <ChartLineUp weight="regular" className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
+                )}
+                {(file.status === 'scanned' || file.status === 'summary-scanned') && (
                   <Tooltip 
                     title="Rescan" 
                     description="Re-extract data from this PDF"
                     icon={<ScanSmiley weight="regular" className="w-4 h-4" />}
                   >
                     <button
-                      onClick={() => scanPdf(file.id)}
+                      onClick={() => setScanOptionsModal({ id: file.id, name: file.name })}
                       disabled={scanning.includes(file.id)}
                       className={`p-2 bg-white rounded-lg hover:bg-gray-50 transition disabled:opacity-50 ${textColor}`}
                     >
@@ -1056,7 +1118,7 @@ export default function FileGrid({
                     icon={<ScanSmiley weight="regular" className="w-4 h-4" />}
                   >
                     <button
-                      onClick={() => scanPdf(file.id)}
+                      onClick={() => setScanOptionsModal({ id: file.id, name: file.name })}
                       disabled={scanning.includes(file.id)}
                       className={`p-2 bg-white rounded-lg hover:bg-gray-50 transition disabled:opacity-50 ${textColor}`}
                     >
@@ -1137,6 +1199,32 @@ export default function FileGrid({
           allFolders={folders}
           onConfirm={bulkMovePdfs}
           selectedCount={selectedItems.size}
+        />
+      )}
+
+      {bulkScanModal && (
+        <BulkScanModal
+          isOpen={true}
+          onClose={() => setBulkScanModal(false)}
+          onConfirm={batchScanPdfs}
+          selectedCount={selectedItems.size}
+        />
+      )}
+
+      {scanOptionsModal && (
+        <ScanOptionsModal
+          isOpen={true}
+          onClose={() => setScanOptionsModal(null)}
+          pdfName={scanOptionsModal.name}
+          onConfirm={(scanType, pageNumbers) => scanPdf(scanOptionsModal.id, scanType, pageNumbers)}
+        />
+      )}
+
+      {summaryViewModal && (
+        <SummaryViewModal
+          isOpen={true}
+          onClose={() => setSummaryViewModal(null)}
+          file={summaryViewModal}
         />
       )}
     </div>

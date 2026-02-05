@@ -11,19 +11,21 @@ export interface Folder {
   totalArea?: number;
   totalIrrigatedArea?: number;
   totalPlantedArea?: number;
+  notice?: string;
 }
 
 export interface PdfFile {
   id: string;
   name: string;
   folderId: string;
-  status: 'unscanned' | 'scanned';
+  status: 'unscanned' | 'scanned' | 'summary-scanned';
   uploadedAt: number;
   scannedAt?: number;
   pageCount?: number;
   storageUrl: string;
   userId: string;
   extractedData?: PdfPage[];
+  summaryData?: SummaryData[];
   totalArea?: number;
   totalIrrigatedArea?: number;
   totalPlantedArea?: number;
@@ -33,10 +35,22 @@ export interface PdfFile {
   totalTokens?: number;
   estimatedCost?: number;
   aiModel?: string;
+  scanType?: 'total' | 'summary';
+  pageNumbers?: string;
+  notice?: string;
 }
 
 export interface PdfPage {
   pageNumber: number;
   tableData: Record<string, unknown>[];
   summary: string;
+}
+
+export interface SummaryData {
+  id: string;
+  name: string;
+  totalArea: number;
+  confidence: number;
+  usage: number;
+  notice?: string;
 }

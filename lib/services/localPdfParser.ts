@@ -22,7 +22,13 @@ export async function parseLocalPdf(buffer: Buffer): Promise<ParsedPDF> {
     const textContent = await lastPage.getTextContent();
     
     const lastPageText = textContent.items
-      .map((item: any) => item.str)
+      .map((item) => {
+        if (typeof item === 'object' && item !== null && 'str' in item) {
+          return (item as { str: string }).str;
+        }
+        return '';
+      })
+      .filter(str => str.length > 0)
       .join(' ');
 
     return {

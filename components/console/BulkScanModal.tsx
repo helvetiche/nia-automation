@@ -4,27 +4,27 @@ import Modal from '@/components/Modal';
 import { Lightning, MapPin } from '@phosphor-icons/react';
 import { useState } from 'react';
 
-interface ScanOptionsModalProps {
+interface BulkScanModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (scanType: 'total' | 'summary', pageNumbers?: string) => void;
-  pdfName: string;
+  selectedCount: number;
 }
 
-export default function ScanOptionsModal({ isOpen, onClose, onConfirm, pdfName }: ScanOptionsModalProps) {
+export default function BulkScanModal({ isOpen, onClose, onConfirm, selectedCount }: BulkScanModalProps) {
   const [selectedScanType, setSelectedScanType] = useState<'total' | 'summary'>('total');
   const [pageNumbers, setPageNumbers] = useState('');
 
-  const startScan = () => {
+  const startBulkScan = () => {
     onConfirm(selectedScanType, selectedScanType === 'summary' ? pageNumbers : undefined);
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Scan Options">
+    <Modal isOpen={isOpen} onClose={onClose} title="Bulk Scan Options">
       <div className="p-6 space-y-4">
         <p className="text-sm text-gray-600">
-          Scan <span className="font-semibold">{pdfName}</span> using Gemini 2.5 Lite
+          Scan <span className="font-semibold">{selectedCount} selected files</span> using Gemini 2.5 Lite
         </p>
 
         <div className="space-y-2">
@@ -91,7 +91,7 @@ export default function ScanOptionsModal({ isOpen, onClose, onConfirm, pdfName }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-800 focus:border-emerald-800"
               />
               <p className="text-xs text-gray-600 mt-1">
-                Specify which pages to scan (e.g., &quot;1&quot; for page 1, &quot;1,3,5&quot; for multiple pages, &quot;1-5&quot; for range)
+                Specify which pages to scan for all selected files (e.g., &quot;1&quot; for page 1, &quot;1,3,5&quot; for multiple pages, &quot;1-5&quot; for range)
               </p>
             </div>
           )}
@@ -105,11 +105,11 @@ export default function ScanOptionsModal({ isOpen, onClose, onConfirm, pdfName }
             Cancel
           </button>
           <button
-            onClick={startScan}
+            onClick={startBulkScan}
             disabled={selectedScanType === 'summary' && !pageNumbers.trim()}
             className="flex-1 px-4 py-2 bg-emerald-800 text-white rounded-lg hover:bg-emerald-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Start Scan
+            Start Bulk Scan
           </button>
         </div>
       </div>

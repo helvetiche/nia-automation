@@ -12,6 +12,7 @@ interface ModalProps {
   description?: string;
   icon?: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '6xl';
+  size?: 'default' | 'large';
 }
 
 const maxWidthClasses = {
@@ -32,6 +33,7 @@ export default function Modal({
   description,
   icon,
   maxWidth = 'md',
+  size = 'default',
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -114,7 +116,9 @@ export default function Modal({
     >
       <div
         ref={contentRef}
-        className={`bg-white rounded-xl shadow-2xl w-full ${maxWidthClasses[maxWidth]} flex flex-col max-h-[90vh]`}
+        className={`bg-white rounded-xl shadow-2xl w-full ${
+          size === 'large' ? 'max-w-6xl' : maxWidthClasses[maxWidth]
+        } flex flex-col max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
