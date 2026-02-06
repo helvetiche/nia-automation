@@ -4,10 +4,13 @@ import { useState, useEffect, useMemo } from "react";
 import type { Folder, PdfFile } from "@/types";
 import Ribbon from "./Ribbon";
 import FileGrid from "./FileGrid";
+import FolderSidebar from "./FolderSidebar";
+import FolderSidebarSkeleton from "./FolderSidebarSkeleton";
 import CreateFolderModal from "./CreateFolderModal";
 import UploadModal from "./UploadModal";
 import UploadTemplateModal from "./UploadTemplateModal";
 import { apiCall } from "@/lib/api/client";
+
 
 interface FolderBrowserProps {
   viewMode: "grid" | "table";
@@ -39,6 +42,8 @@ export default function FolderBrowser({
   >("name-asc");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const [allFiles, setAllFiles] = useState<PdfFile[]>([]);
+
   const loadFolders = async () => {
     try {
       const response = await apiCall("/api/folders");
@@ -63,12 +68,24 @@ export default function FolderBrowser({
     }
   };
 
+  const loadAllFiles = async () => {
+    try {
+      const timestamp = Date.now();
+      const response = await apiCall(`/api/files?t=${timestamp}`);
+      const data = await response.json();
+      setAllFiles(data.files || []);
+    } catch (error) {
+      console.error("all files load failed:", error);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       const savedFolder = localStorage.getItem(STORAGE_KEYS.currentFolder);
 
       await loadFolders();
       await loadFiles(savedFolder || null);
+      await loadAllFiles();
 
       if (savedFolder) {
         setCurrentFolder(savedFolder);
@@ -92,9 +109,11 @@ export default function FolderBrowser({
     if (force) {
       setFiles([]);
       setFolders([]);
+      setAllFiles([]);
     }
     await loadFolders();
     await loadFiles(currentFolder);
+    await loadAllFiles();
     setRefreshTrigger((prev) => prev + 1);
     setLoading(false);
   };
@@ -114,7 +133,7 @@ export default function FolderBrowser({
   };
 
   const filteredFiles = useMemo(() => {
-    let result = files;
+    let result = searchQuery ? allFiles : files;
 
     if (searchQuery) {
       result = result.filter((file) =>
@@ -144,7 +163,7 @@ export default function FolderBrowser({
     });
 
     return result;
-  }, [files, searchQuery, filterStatus, sortBy]);
+  }, [allFiles, files, searchQuery, filterStatus, sortBy]);
 
   const exportToExcel = async (
     templateId: string | null,
@@ -196,33 +215,41 @@ export default function FolderBrowser({
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Ribbon
-        onCreateFolder={() => setShowCreateFolder(true)}
-        onUploadFile={() => setShowUpload(true)}
-        onUploadTemplate={() => setShowUploadTemplate(true)}
-        onRefresh={refreshData}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
         filterStatus={filterStatus}
         onFilterChange={setFilterStatus}
         sortBy={sortBy}
         onSortChange={setSortBy}
         refreshTrigger={refreshTrigger}
-        currentFolderId={currentFolder}
-        onExportExcel={() => exportToExcel(null)}
       />
 
-      <FileGrid
-        folders={folders}
-        files={filteredFiles}
-        currentFolder={currentFolder}
-        onSelectFolder={selectFolder}
-        onRefresh={refreshData}
-        onCreateFolder={() => setShowCreateFolder(true)}
-        onUploadFile={() => setShowUpload(true)}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
-        loading={loading}
-      />
+      <div className="flex flex-1 overflow-hidden">
+        {loading && folders.length === 0 ? (
+          <FolderSidebarSkeleton />
+        ) : (
+          <FolderSidebar
+            folders={folders}
+            currentFolder={currentFolder}
+            onSelectFolder={selectFolder}
+            onCreateFolder={() => setShowCreateFolder(true)}
+            onUploadFile={() => setShowUpload(true)}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
+        )}
+
+        <FileGrid
+          folders={folders}
+          files={filteredFiles}
+          currentFolder={currentFolder}
+          onSelectFolder={selectFolder}
+          onRefresh={refreshData}
+          onCreateFolder={() => setShowCreateFolder(true)}
+          onUploadFile={() => setShowUpload(true)}
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+          loading={loading}
+        />
+      </div>
 
       {showCreateFolder && (
         <CreateFolderModal

@@ -3,7 +3,7 @@ import { adminStorage, adminDb } from "@/lib/firebase/adminConfig";
 import { verifyOperator } from "@/lib/auth/middleware";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
-const MAX_FILES_PER_UPLOAD = 10;
+const MAX_FILES_PER_UPLOAD = 20;
 
 export async function POST(request: NextRequest) {
   try {

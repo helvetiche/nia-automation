@@ -45,9 +45,11 @@ import ScanOptionsModal from "./ScanOptionsModal";
 import Tooltip from "@/components/Tooltip";
 import { useToast } from "@/components/ToastContainer";
 import FileList from "./FileList";
+import FileGridSkeleton from "./FileGridSkeleton";
 import BulkScanModal from "./BulkScanModal";
 import BulkMovePdfModal from "./BulkMovePdfModal";
-import TemplateModal from "./TemplateModal";
+import BulkDeleteModal from "./BulkDeleteModal";
+import ReportConfigModal from "./ReportConfigModal";
 
 interface FileGridProps {
   folders: Folder[];
@@ -185,6 +187,7 @@ export default function FileGrid({
   const [bulkActionsMenu, setBulkActionsMenu] = useState(false);
   const [bulkMoveModal, setBulkMoveModal] = useState(false);
   const [bulkScanModal, setBulkScanModal] = useState(false);
+  const [bulkDeleteModal, setBulkDeleteModal] = useState(false);
   const [bulkReportModal, setBulkReportModal] = useState(false);
   const [syncingFolders, setSyncingFolders] = useState<Set<string>>(new Set());
   const [batchScanning, setBatchScanning] = useState(() => {
@@ -708,7 +711,64 @@ export default function FileGrid({
     }
   };
 
-  const generateBulkReport = async (templateId: string | null) => {
+  const bulkDeletePdfs = async () => {
+    const selectedPdfIds = Array.from(selectedItems).filter((id) =>
+      files.some((f) => f.id === id),
+    );
+
+    if (selectedPdfIds.length === 0) {
+      showToast("error", "No Files Selected", "Please select PDFs to delete");
+      return;
+    }
+
+    setDeletedPdfs([...deletedPdfs, ...selectedPdfIds]);
+    showToast(
+      "success",
+      "Files Deleted",
+      `${selectedPdfIds.length} PDF${selectedPdfIds.length !== 1 ? "s" : ""} removed`,
+    );
+
+    const deletePromises = selectedPdfIds.map((pdfId) =>
+      apiCall(`/api/files?id=${pdfId}`, {
+        method: "DELETE",
+      }),
+    );
+
+    try {
+      const results = await Promise.all(deletePromises);
+      const allSuccess = results.every((r) => r.ok);
+
+      if (allSuccess) {
+        setSelectedItems(new Set());
+        setIsSelectMode(false);
+        setBulkActionsMenu(false);
+        await onRefresh();
+      } else {
+        setDeletedPdfs(
+          deletedPdfs.filter((id) => !selectedPdfIds.includes(id)),
+        );
+        showToast(
+          "error",
+          "Oops, something broke",
+          "Could not delete all files. Try again?",
+        );
+      }
+    } catch (error) {
+      console.error("bulk delete failed:", error);
+      setDeletedPdfs(deletedPdfs.filter((id) => !selectedPdfIds.includes(id)));
+      showToast(
+        "error",
+        "Oops, something broke",
+        "Could not delete files. Try again?",
+      );
+    }
+  };
+
+  const generateBulkReport = async (config: {
+    title: string;
+    season: string;
+    year: number;
+  }) => {
     const selectedIds = Array.from(selectedItems);
     if (selectedIds.length === 0) {
       showToast(
@@ -719,23 +779,21 @@ export default function FileGrid({
       return;
     }
 
+    const selectedFiles = files.filter((f) => selectedIds.includes(f.id));
+    const selectedFolders = folders.filter((f) => selectedIds.includes(f.id));
+
+    let url = "/api/reports/lipa?";
+
+    if (selectedFiles.length > 0) {
+      url += `fileIds=${selectedFiles.map((f) => f.id).join(",")}`;
+    } else if (selectedFolders.length > 0) {
+      url += `folderIds=${selectedFolders.map((f) => f.id).join(",")}`;
+    }
+
+    url += `&title=${encodeURIComponent(config.title)}&season=${encodeURIComponent(config.season)}`;
+
     try {
-      showToast("info", "Generating Report", "Creating Excel report...");
-
-      const selectedFiles = files.filter((f) => selectedIds.includes(f.id));
-      const selectedFolders = folders.filter((f) => selectedIds.includes(f.id));
-
-      let url = "/api/reports/lipa?";
-
-      if (selectedFiles.length > 0) {
-        url += `fileIds=${selectedFiles.map((f) => f.id).join(",")}`;
-      } else if (selectedFolders.length > 0) {
-        url += `folderIds=${selectedFolders.map((f) => f.id).join(",")}`;
-      }
-
-      if (templateId) {
-        url += `&templateId=${templateId}`;
-      }
+      showToast("info", "Generating Report", "Creating your Excel file...");
 
       const response = await apiCall(url);
 
@@ -860,14 +918,10 @@ export default function FileGrid({
                   </button>
                   <button
                     onClick={() => {
-                      showToast(
-                        "info",
-                        "Coming Soon",
-                        "Bulk delete feature coming soon",
-                      );
+                      setBulkDeleteModal(true);
                       setBulkActionsMenu(false);
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-b border-gray-100"
                   >
                     <Trash weight="regular" className="w-4 h-4" />
                     Delete Selected
@@ -905,6 +959,8 @@ export default function FileGrid({
           estimatedTimeRemaining={estimatedTimeRemaining}
           loading={loading}
         />
+      ) : loading ? (
+        <FileGridSkeleton />
       ) : (
         <>
           <div className="grid grid-cols-4 gap-4">
@@ -1430,52 +1486,6 @@ export default function FileGrid({
                           </button>
                         </Tooltip>
                       )}
-                      {file.status === "summary-scanned" &&
-                        file.summaryData && (
-                          <Tooltip
-                            title="View Associations"
-                            description="View detailed irrigation associations data"
-                            icon={
-                              <ChartLineUp
-                                weight="regular"
-                                className="w-4 h-4"
-                              />
-                            }
-                          >
-                            <button
-                              onClick={() => setSummaryViewModal(file)}
-                              className={`p-2 bg-white rounded-lg hover:bg-gray-50 transition ${textColor}`}
-                            >
-                              <ChartLineUp
-                                weight="regular"
-                                className="w-4 h-4"
-                              />
-                            </button>
-                          </Tooltip>
-                        )}
-                      {(file.status === "scanned" ||
-                        file.status === "summary-scanned") && (
-                        <Tooltip
-                          title="Rescan"
-                          description="Re-extract data from this PDF"
-                          icon={
-                            <ScanSmiley weight="regular" className="w-4 h-4" />
-                          }
-                        >
-                          <button
-                            onClick={() =>
-                              setScanOptionsModal({
-                                id: file.id,
-                                name: file.name,
-                              })
-                            }
-                            disabled={scanning.includes(file.id)}
-                            className={`p-2 bg-white rounded-lg hover:bg-gray-50 transition disabled:opacity-50 ${textColor}`}
-                          >
-                            <ScanSmiley weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                      )}
                       {file.status === "unscanned" && (
                         <Tooltip
                           title="Scan"
@@ -1590,12 +1600,25 @@ export default function FileGrid({
       )}
 
       {bulkReportModal && (
-        <TemplateModal
+        <ReportConfigModal
           onClose={() => setBulkReportModal(false)}
-          onSelectTemplate={(templateId) => {
-            generateBulkReport(templateId);
+          onConfirm={(config) => {
+            generateBulkReport(config);
             setBulkReportModal(false);
           }}
+        />
+      )}
+
+      {bulkDeleteModal && (
+        <BulkDeleteModal
+          isOpen={true}
+          onClose={() => setBulkDeleteModal(false)}
+          fileCount={
+            Array.from(selectedItems).filter((id) =>
+              files.some((f) => f.id === id),
+            ).length
+          }
+          onConfirm={bulkDeletePdfs}
         />
       )}
 

@@ -7,6 +7,8 @@ import {
   FilePdf,
   X,
   Pencil,
+  CheckCircle,
+  Sparkle,
 } from "@phosphor-icons/react/dist/ssr";
 import { apiCall } from "@/lib/api/client";
 import Modal from "@/components/Modal";
@@ -40,6 +42,7 @@ export default function UploadModal({
   const [scanComplete, setScanComplete] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
 
   const selectFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -52,6 +55,48 @@ export default function UploadModal({
     }));
 
     setSelectedFiles([...selectedFiles, ...newFiles]);
+  };
+
+  const addFiles = (fileList: FileList) => {
+    const newFiles = Array.from(fileList)
+      .filter((file) => file.type === "application/pdf")
+      .map((file) => ({
+        file,
+        displayName: file.name.replace(/\.pdf$/i, ""),
+        pageNumber: "1",
+      }));
+
+    if (newFiles.length > 0) {
+      setSelectedFiles([...selectedFiles, ...newFiles]);
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      addFiles(files);
+    }
   };
 
   const removeFile = (index: number) => {
@@ -212,30 +257,48 @@ export default function UploadModal({
         </div>
       ) : scanComplete ? (
         <div className="p-6 space-y-4">
-          <div className="text-center py-4">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-emerald-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+          <div className="mb-6 flex items-center gap-3">
+            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+              <Sparkle
+                weight="fill"
+                className="w-6 h-6 text-emerald-600"
+              />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Scan Complete!
-            </h3>
-            <p className="text-sm text-gray-600">
-              {uploadedFileIds.length}{" "}
-              {uploadedFileIds.length === 1 ? "file" : "files"} scanned
-              successfully
-            </p>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Scan Complete!
+              </h3>
+              <p className="text-sm text-gray-600">
+                {uploadedFileIds.length}{" "}
+                {uploadedFileIds.length === 1 ? "file" : "files"} processed
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {selectedFiles.map((fileConfig, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-transparent rounded-lg border border-emerald-200 hover:border-emerald-300 transition"
+              >
+                <FilePdf
+                  weight="regular"
+                  className="w-5 h-5 text-red-600 flex-shrink-0"
+                />
+                <span className="flex-1 text-sm font-medium text-gray-900 truncate">
+                  {fileConfig.displayName}.pdf
+                </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <CheckCircle
+                    weight="fill"
+                    className="w-5 h-5 text-emerald-600"
+                  />
+                  <span className="text-xs font-semibold text-emerald-700">
+                    success
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="flex gap-3">
@@ -262,17 +325,31 @@ export default function UploadModal({
         <>
           <div className="p-6 space-y-4">
             {selectedFiles.length === 0 ? (
-              <label className="flex flex-col items-center gap-4 p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-emerald-800 cursor-pointer transition">
+              <label
+                className={`flex flex-col items-center gap-4 p-8 border-2 border-dashed rounded-lg cursor-pointer transition ${
+                  isDragging
+                    ? "border-emerald-800 bg-emerald-50"
+                    : "border-gray-300 hover:border-emerald-800"
+                }`}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
                 <UploadSimple
                   weight="regular"
-                  className="w-12 h-12 text-emerald-800"
+                  className={`w-12 h-12 transition ${
+                    isDragging ? "text-emerald-900" : "text-emerald-800"
+                  }`}
                 />
                 <div className="text-center">
                   <p className="text-sm font-medium text-gray-900">
-                    Click to select PDFs
+                    {isDragging
+                      ? "Drop PDFs here"
+                      : "Click to select or drag PDFs here"}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Max 10 files, 50MB each
+                    Max 20 files, 50MB each
                   </p>
                 </div>
                 <input
@@ -284,15 +361,27 @@ export default function UploadModal({
                 />
               </label>
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
+              <div
+                className="space-y-4"
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
+                <div
+                  className={`flex items-center justify-between transition ${
+                    isDragging ? "opacity-50" : ""
+                  }`}
+                >
                   <div>
                     <p className="text-sm font-semibold text-gray-900">
                       {selectedFiles.length}{" "}
                       {selectedFiles.length === 1 ? "file" : "files"} selected
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Configure page numbers and names for each file
+                      {isDragging
+                        ? "Drop more PDFs to add them"
+                        : "Configure page numbers and names for each file"}
                     </p>
                   </div>
                   <label className="text-xs text-emerald-800 hover:text-emerald-900 cursor-pointer font-medium px-3 py-1.5 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition">
@@ -306,6 +395,20 @@ export default function UploadModal({
                     />
                   </label>
                 </div>
+
+                {isDragging && (
+                  <div className="absolute inset-0 bg-emerald-50/90 border-2 border-dashed border-emerald-800 rounded-lg flex items-center justify-center z-10 pointer-events-none">
+                    <div className="text-center">
+                      <UploadSimple
+                        weight="regular"
+                        className="w-12 h-12 text-emerald-900 mx-auto mb-2"
+                      />
+                      <p className="text-sm font-semibold text-emerald-900">
+                        Drop PDFs to add them
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="max-h-96 overflow-y-auto space-y-3 pr-1">
                   {selectedFiles.map((fileConfig, index) => (

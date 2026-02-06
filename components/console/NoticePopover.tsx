@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Flag, X } from "@phosphor-icons/react";
+import { Flag } from "@phosphor-icons/react";
 import Modal from "@/components/Modal";
 
 interface NoticePopoverProps {

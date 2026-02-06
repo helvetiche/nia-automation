@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb, adminStorage } from "@/lib/firebase/adminConfig";
-import {
-  parseExcelTemplate,
-  generateLIPAReport,
-} from "@/lib/services/excelTemplateService";
+import { adminDb } from "@/lib/firebase/adminConfig";
 
 function capitalizeAssociation(name: string): string {
   const exceptions = ["NON-IA", "NON - IA", "NON IA", "NONIA"];
@@ -30,11 +26,8 @@ export async function GET(request: NextRequest) {
     const folderId = request.nextUrl.searchParams.get("folderId");
     const folderIds = request.nextUrl.searchParams.get("folderIds");
     const fileIds = request.nextUrl.searchParams.get("fileIds");
-    const templateId = request.nextUrl.searchParams.get("templateId");
     const title = request.nextUrl.searchParams.get("title") || "LIST OF IRRIGATED AND PLANTED AREA (LIPA)";
     const season = request.nextUrl.searchParams.get("season") || "DRY CROPPING SEASON 2025";
-
-    console.log("LIPA API - Received params:", { title, season, templateId });
 
     if (!folderId && !folderIds && !fileIds) {
       return NextResponse.json(
@@ -44,23 +37,6 @@ export async function GET(request: NextRequest) {
     }
 
     const db = adminDb();
-
-    let templateData = null;
-    if (templateId) {
-      const templateDoc = await db
-        .collection("templates")
-        .doc(templateId)
-        .get();
-      if (templateDoc.exists) {
-        const template = templateDoc.data();
-        const storage = adminStorage();
-        const bucket = storage.bucket();
-        const file = bucket.file(template?.storagePath);
-
-        const [buffer] = await file.download();
-        templateData = parseExcelTemplate(buffer);
-      }
-    }
 
     const allDivisions: {
       divisionName: string;
@@ -162,25 +138,14 @@ export async function GET(request: NextRequest) {
     }
 
     const reportData = {
-      title: templateData?.title || title,
-      season: templateData?.season || season,
+      title,
+      season,
       divisions: allDivisions,
     };
 
-    console.log("LIPA API - Final report data:", { title: reportData.title, season: reportData.season });
-
-    const buffer = await generateLIPAReport(reportData);
-
-    return new NextResponse(Buffer.from(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="LIPA_Report_${Date.now()}.xlsx"`,
-      },
-    });
+    return NextResponse.json(reportData);
   } catch (error) {
-    console.error("report generation broken:", error);
+    console.error("preview generation broken:", error);
     return NextResponse.json({ error: "server broken" }, { status: 500 });
   }
 }

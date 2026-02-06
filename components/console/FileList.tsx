@@ -27,11 +27,9 @@ import {
   ArrowsDownUp,
   CaretDown,
   CaretRight,
-  FolderPlus,
   CheckCircle,
   Gauge,
   Leaf,
-  Plant,
   ArrowsClockwise,
   CurrencyDollar,
   Flag,
@@ -576,26 +574,8 @@ export default function FileList({
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <FolderPlus weight="regular" className="w-4 h-4" />
-                    Contents
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
                     <Gauge weight="regular" className="w-4 h-4" />
                     Total Area
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Leaf weight="regular" className="w-4 h-4" />
-                    Irrigated
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Plant weight="regular" className="w-4 h-4" />
-                    Planted
                   </div>
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
@@ -620,12 +600,6 @@ export default function FileList({
                     current: null,
                   } as React.RefObject<HTMLButtonElement | null>;
 
-                  const subfolderCount = allFolders.filter(
-                    (f) => f.parentId === folder.id,
-                  ).length;
-                  const fileCount = files.filter(
-                    (f) => f.folderId === folder.id,
-                  ).length;
                   const folderTotals = {
                     totalArea: folder.totalArea || 0,
                     totalIrrigatedArea: folder.totalIrrigatedArea || 0,
@@ -667,30 +641,9 @@ export default function FileList({
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono text-gray-600">
-                          {subfolderCount}{" "}
-                          {subfolderCount === 1 ? "Folder" : "Folders"},{" "}
-                          {fileCount} {fileCount === 1 ? "File" : "Files"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
                         <span className="font-mono text-gray-900">
                           {folderTotals.totalArea > 0
                             ? folderTotals.totalArea.toFixed(2)
-                            : "--"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-gray-900">
-                          {folderTotals.totalIrrigatedArea > 0
-                            ? folderTotals.totalIrrigatedArea.toFixed(2)
-                            : "--"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-gray-900">
-                          {folderTotals.totalPlantedArea > 0
-                            ? folderTotals.totalPlantedArea.toFixed(2)
                             : "--"}
                         </span>
                       </td>
@@ -918,93 +871,14 @@ export default function FileList({
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {file.inputTokens &&
-                      file.outputTokens &&
-                      file.estimatedCost ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1">
-                            <ChartBar
-                              weight="fill"
-                              className={`w-3 h-3 ${
-                                fileColor === "red"
-                                  ? "text-red-600"
-                                  : fileColor === "orange"
-                                    ? "text-orange-600"
-                                    : fileColor === "yellow"
-                                      ? "text-yellow-600"
-                                      : fileColor === "emerald"
-                                        ? "text-emerald-600"
-                                        : fileColor === "blue"
-                                          ? "text-blue-600"
-                                          : fileColor === "indigo"
-                                            ? "text-indigo-600"
-                                            : fileColor === "purple"
-                                              ? "text-purple-600"
-                                              : "text-pink-600"
-                              }`}
-                            />
-                            <span className="text-xs font-mono text-gray-700">
-                              {file.inputTokens.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <ChartBar
-                              weight="fill"
-                              className={`w-3 h-3 ${
-                                fileColor === "red"
-                                  ? "text-red-600"
-                                  : fileColor === "orange"
-                                    ? "text-orange-600"
-                                    : fileColor === "yellow"
-                                      ? "text-yellow-600"
-                                      : fileColor === "emerald"
-                                        ? "text-emerald-600"
-                                        : fileColor === "blue"
-                                          ? "text-blue-600"
-                                          : fileColor === "indigo"
-                                            ? "text-indigo-600"
-                                            : fileColor === "purple"
-                                              ? "text-purple-600"
-                                              : "text-pink-600"
-                              }`}
-                            />
-                            <span className="text-xs font-mono text-gray-700">
-                              {file.outputTokens.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <CurrencyDollar
-                              weight="fill"
-                              className={`w-3 h-3 ${
-                                fileColor === "red"
-                                  ? "text-red-600"
-                                  : fileColor === "orange"
-                                    ? "text-orange-600"
-                                    : fileColor === "yellow"
-                                      ? "text-yellow-600"
-                                      : fileColor === "emerald"
-                                        ? "text-emerald-600"
-                                        : fileColor === "blue"
-                                          ? "text-blue-600"
-                                          : fileColor === "indigo"
-                                            ? "text-indigo-600"
-                                            : fileColor === "purple"
-                                              ? "text-purple-600"
-                                              : "text-pink-600"
-                              }`}
-                            />
-                            <span className="text-xs font-mono text-gray-700">
-                              ₱
-                              {(file.estimatedCost * 58).toLocaleString(
-                                "en-US",
-                                {
-                                  minimumFractionDigits: 6,
-                                  maximumFractionDigits: 6,
-                                },
-                              )}
-                            </span>
-                          </div>
-                        </div>
+                      {file.estimatedCost ? (
+                        <span className="text-xs font-mono text-gray-900">
+                          ₱
+                          {(file.estimatedCost * 58).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
                       ) : (
                         <span className="text-gray-400">--</span>
                       )}
@@ -1080,20 +954,6 @@ export default function FileList({
                           actions={[
                             {
                               icon: (
-                                <Eye weight="regular" className="w-4 h-4" />
-                              ),
-                              label: "View Associations",
-                              onClick: () => setSummaryViewModal(file),
-                            },
-                            {
-                              icon: (
-                                <FilePdf weight="regular" className="w-4 h-4" />
-                              ),
-                              label: "View Pages",
-                              onClick: () => setPdfPageModal(file),
-                            },
-                            {
-                              icon: (
                                 <ArrowsDownUp
                                   weight="regular"
                                   className="w-4 h-4"
@@ -1101,18 +961,6 @@ export default function FileList({
                               ),
                               label: "Move File",
                               onClick: () => setMovePdfModal(file),
-                            },
-                            {
-                              icon: (
-                                <ScanSmiley
-                                  weight="regular"
-                                  className="w-4 h-4"
-                                />
-                              ),
-                              label: "Rescan",
-                              onClick: () => setScanOptionsModal(file),
-                              disabled:
-                                scanning.includes(file.id) || batchScanning,
                             },
                             {
                               icon: (
@@ -1391,18 +1239,6 @@ export default function FileList({
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <Leaf weight="regular" className="w-4 h-4" />
-                    Irrigated
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Plant weight="regular" className="w-4 h-4" />
-                    Planted
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
                     <CurrencyDollar weight="regular" className="w-4 h-4" />
                     Usage
                   </div>
@@ -1430,8 +1266,7 @@ export default function FileList({
                   current: null,
                 } as React.RefObject<HTMLButtonElement | null>;
 
-                const { totalArea, totalIrrigatedArea, totalPlantedArea } =
-                  calculateTotals(file);
+                const { totalArea } = calculateTotals(file);
 
                 const hasNotice = file.notice && file.notice.trim().length > 0;
                 const rowClassName = hasNotice
@@ -1556,108 +1391,14 @@ export default function FileList({
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-mono text-gray-900">
-                        {totalIrrigatedArea > 0
-                          ? totalIrrigatedArea.toFixed(2)
-                          : "--"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-gray-900">
-                        {totalPlantedArea > 0
-                          ? totalPlantedArea.toFixed(2)
-                          : "--"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {file.status === "scanned" &&
-                      file.inputTokens &&
-                      file.outputTokens &&
-                      file.estimatedCost ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1">
-                            <ChartBar
-                              weight="fill"
-                              className={`w-3 h-3 ${
-                                fileColor === "red"
-                                  ? "text-red-600"
-                                  : fileColor === "orange"
-                                    ? "text-orange-600"
-                                    : fileColor === "yellow"
-                                      ? "text-yellow-600"
-                                      : fileColor === "emerald"
-                                        ? "text-emerald-600"
-                                        : fileColor === "blue"
-                                          ? "text-blue-600"
-                                          : fileColor === "indigo"
-                                            ? "text-indigo-600"
-                                            : fileColor === "purple"
-                                              ? "text-purple-600"
-                                              : "text-pink-600"
-                              }`}
-                            />
-                            <span className="text-xs font-mono text-gray-700">
-                              {file.inputTokens.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <ChartBar
-                              weight="fill"
-                              className={`w-3 h-3 ${
-                                fileColor === "red"
-                                  ? "text-red-600"
-                                  : fileColor === "orange"
-                                    ? "text-orange-600"
-                                    : fileColor === "yellow"
-                                      ? "text-yellow-600"
-                                      : fileColor === "emerald"
-                                        ? "text-emerald-600"
-                                        : fileColor === "blue"
-                                          ? "text-blue-600"
-                                          : fileColor === "indigo"
-                                            ? "text-indigo-600"
-                                            : fileColor === "purple"
-                                              ? "text-purple-600"
-                                              : "text-pink-600"
-                              }`}
-                            />
-                            <span className="text-xs font-mono text-gray-700">
-                              {file.outputTokens.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <CurrencyDollar
-                              weight="fill"
-                              className={`w-3 h-3 ${
-                                fileColor === "red"
-                                  ? "text-red-600"
-                                  : fileColor === "orange"
-                                    ? "text-orange-600"
-                                    : fileColor === "yellow"
-                                      ? "text-yellow-600"
-                                      : fileColor === "emerald"
-                                        ? "text-emerald-600"
-                                        : fileColor === "blue"
-                                          ? "text-blue-600"
-                                          : fileColor === "indigo"
-                                            ? "text-indigo-600"
-                                            : fileColor === "purple"
-                                              ? "text-purple-600"
-                                              : "text-pink-600"
-                              }`}
-                            />
-                            <span className="text-xs font-mono text-gray-700">
-                              ₱
-                              {(file.estimatedCost * 58).toLocaleString(
-                                "en-US",
-                                {
-                                  minimumFractionDigits: 6,
-                                  maximumFractionDigits: 6,
-                                },
-                              )}
-                            </span>
-                          </div>
-                        </div>
+                      {file.status === "scanned" && file.estimatedCost ? (
+                        <span className="text-xs font-mono text-gray-900">
+                          ₱
+                          {(file.estimatedCost * 58).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
                       ) : (
                         <span className="text-gray-400">--</span>
                       )}
@@ -1760,13 +1501,6 @@ export default function FileList({
                               : []),
                             {
                               icon: (
-                                <FilePdf weight="regular" className="w-4 h-4" />
-                              ),
-                              label: "View Pages",
-                              onClick: () => setPdfPageModal(file),
-                            },
-                            {
-                              icon: (
                                 <ArrowsDownUp
                                   weight="regular"
                                   className="w-4 h-4"
@@ -1774,19 +1508,6 @@ export default function FileList({
                               ),
                               label: "Move File",
                               onClick: () => setMovePdfModal(file),
-                            },
-                            {
-                              icon: (
-                                <ScanSmiley
-                                  weight="regular"
-                                  className="w-4 h-4"
-                                />
-                              ),
-                              label:
-                                file.status === "scanned" ? "Rescan" : "Scan",
-                              onClick: () => setScanOptionsModal(file),
-                              disabled:
-                                scanning.includes(file.id) || batchScanning,
                             },
                             {
                               icon: (
