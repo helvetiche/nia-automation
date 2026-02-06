@@ -219,7 +219,7 @@ export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
   return Buffer.from(buffer);
 }
 
-export function parseExcelTemplate(buffer: Buffer): ReportData {
+export function parseExcelTemplate(): ReportData {
   return {
     title: "LIST OF IRRIGATED AND PLANTED AREA (LIPA)",
     season: "DRY CROPPING SEASON 2025",

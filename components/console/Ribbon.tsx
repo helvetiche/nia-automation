@@ -8,30 +8,15 @@ import { apiCall } from "@/lib/api/client";
 import Image from "next/image";
 import {
   SignOut,
-  Funnel,
-  CheckCircle,
-  Clock,
-  CalendarBlank,
-  FileArrowUp,
-  SortAscending,
-  SortDescending,
   Gear,
   Warning,
 } from "@phosphor-icons/react/dist/ssr";
 
 interface RibbonProps {
-  filterStatus: "all" | "scanned" | "unscanned";
-  onFilterChange: (status: "all" | "scanned" | "unscanned") => void;
-  sortBy: "name-asc" | "name-desc" | "date" | "size";
-  onSortChange: (sort: "name-asc" | "name-desc" | "date" | "size") => void;
   refreshTrigger?: number;
 }
 
 export default function Ribbon({
-  filterStatus,
-  onFilterChange,
-  sortBy,
-  onSortChange,
   refreshTrigger,
 }: RibbonProps) {
   const router = useRouter();
@@ -226,22 +211,4 @@ export default function Ribbon({
   );
 }
 
-function FilterDropdown({
-  filterStatus,
-  onFilterChange,
-  sortBy,
-  onSortChange,
-}: {
-  filterStatus: "all" | "scanned" | "unscanned";
-  onFilterChange: (status: "all" | "scanned" | "unscanned") => void;
-  sortBy: "name-asc" | "name-desc" | "date" | "size";
-  onSortChange: (sort: "name-asc" | "name-desc" | "date" | "size") => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
 
-  return (
-    <div className="relative">
-     
-    </div>
-  );
-}

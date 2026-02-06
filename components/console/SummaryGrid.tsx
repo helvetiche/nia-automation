@@ -18,7 +18,6 @@ interface SummaryGridProps {
 export default function SummaryGrid({
   summaryData,
   confidence,
-  totalTokens,
   estimatedCost,
 }: SummaryGridProps) {
   if (!summaryData || summaryData.length === 0) {

@@ -21,13 +21,11 @@ import {
   VideoCamera,
   FilePdf,
   Eye,
-  ScanSmiley,
   Trash,
   ChartLineUp,
   ArrowsDownUp,
   CaretDown,
   CaretRight,
-  CheckCircle,
   Gauge,
   Leaf,
   ArrowsClockwise,
@@ -63,7 +61,6 @@ interface FileListProps {
   selectedPdfs: Set<string>;
   onToggleSelectPdf: (id: string) => void;
   onToggleSelectAllPdfs: (ids: string[]) => void;
-  batchScanning: boolean;
   currentlyScanning: string | null;
   estimatedTimeRemaining: number;
   loading?: boolean;
@@ -136,7 +133,6 @@ export default function FileList({
   selectedPdfs,
   onToggleSelectPdf,
   onToggleSelectAllPdfs,
-  batchScanning,
   currentlyScanning,
   estimatedTimeRemaining,
   loading = false,
@@ -1438,7 +1434,7 @@ export default function FileList({
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <CheckCircle weight="regular" className="w-4 h-4" />
+                    <Check weight="regular" className="w-4 h-4" />
                     Status
                   </div>
                 </th>

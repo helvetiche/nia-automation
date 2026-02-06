@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
         const bucket = storage.bucket();
         const file = bucket.file(template?.storagePath);
 
-        const [buffer] = await file.download();
-        templateData = parseExcelTemplate(buffer);
+        await file.download();
+        templateData = parseExcelTemplate();
       }
     }
 

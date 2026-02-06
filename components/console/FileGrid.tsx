@@ -954,7 +954,6 @@ export default function FileGrid({
           selectedPdfs={selectedItems}
           onToggleSelectPdf={(id) => toggleSelectItem(id)}
           onToggleSelectAllPdfs={(ids) => toggleSelectAllItems(ids)}
-          batchScanning={batchScanning}
           currentlyScanning={currentlyScanning}
           estimatedTimeRemaining={estimatedTimeRemaining}
           loading={loading}

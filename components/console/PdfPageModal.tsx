@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Modal from "@/components/Modal";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 
@@ -24,14 +24,39 @@ export default function PdfPageModal({
   const [error, setError] = useState<string | null>(null);
   const [scale, setScale] = useState(1.0);
   const [pdfComponents, setPdfComponents] = useState<{
-    Document: React.ComponentType<unknown>;
-    Page: React.ComponentType<unknown>;
+    Document: React.ComponentType<Record<string, unknown>>;
+    Page: React.ComponentType<Record<string, unknown>>;
   } | null>(null);
 
-  const parsedPages = scannedPages ? parsePageNumbers(scannedPages) : [];
+  const parsedPages = useCallback(() => {
+    if (!scannedPages) return [];
+    const pages: number[] = [];
+    const parts = scannedPages.split(",");
+
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (trimmed.includes("-")) {
+        const [start, end] = trimmed.split("-").map((n) => parseInt(n.trim()));
+        if (!isNaN(start) && !isNaN(end)) {
+          for (let i = start; i <= end; i++) {
+            pages.push(i);
+          }
+        }
+      } else {
+        const pageNum = parseInt(trimmed);
+        if (!isNaN(pageNum)) {
+          pages.push(pageNum);
+        }
+      }
+    }
+
+    return [...new Set(pages)].sort((a, b) => a - b);
+  }, [scannedPages]);
+
+  const memoizedParsedPages = useMemo(() => parsedPages(), [parsedPages]);
 
   const [currentPage, setCurrentPage] = useState<number>(() => {
-    return parsedPages.length > 0 ? parsedPages[0] : 1;
+    return memoizedParsedPages.length > 0 ? memoizedParsedPages[0] : 1;
   });
 
   useEffect(() => {
@@ -78,38 +103,10 @@ export default function PdfPageModal({
   }, [isOpen]);
 
   useEffect(() => {
-    if (
-      isOpen &&
-      parsedPages.length > 0 &&
-      !parsedPages.includes(currentPage)
-    ) {
-      setCurrentPage(parsedPages[0]);
+    if (isOpen && memoizedParsedPages.length > 0) {
+      setCurrentPage(memoizedParsedPages[0]);
     }
-  }, [isOpen, parsedPages, currentPage]);
-
-  function parsePageNumbers(pageStr: string): number[] {
-    const pages: number[] = [];
-    const parts = pageStr.split(",");
-
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (trimmed.includes("-")) {
-        const [start, end] = trimmed.split("-").map((n) => parseInt(n.trim()));
-        if (!isNaN(start) && !isNaN(end)) {
-          for (let i = start; i <= end; i++) {
-            pages.push(i);
-          }
-        }
-      } else {
-        const pageNum = parseInt(trimmed);
-        if (!isNaN(pageNum)) {
-          pages.push(pageNum);
-        }
-      }
-    }
-
-    return [...new Set(pages)].sort((a, b) => a - b);
-  }
+  }, [isOpen, memoizedParsedPages]);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     console.log("PDF loaded successfully, pages:", numPages);
@@ -125,10 +122,10 @@ export default function PdfPageModal({
   }
 
   const goToPrevious = () => {
-    if (parsedPages.length > 0) {
-      const currentIndex = parsedPages.indexOf(currentPage);
+    if (memoizedParsedPages.length > 0) {
+      const currentIndex = memoizedParsedPages.indexOf(currentPage);
       if (currentIndex > 0) {
-        setCurrentPage(parsedPages[currentIndex - 1]);
+        setCurrentPage(memoizedParsedPages[currentIndex - 1]);
       }
     } else {
       setCurrentPage((prev) => Math.max(1, prev - 1));
@@ -136,10 +133,10 @@ export default function PdfPageModal({
   };
 
   const goToNext = () => {
-    if (parsedPages.length > 0) {
-      const currentIndex = parsedPages.indexOf(currentPage);
-      if (currentIndex < parsedPages.length - 1) {
-        setCurrentPage(parsedPages[currentIndex + 1]);
+    if (memoizedParsedPages.length > 0) {
+      const currentIndex = memoizedParsedPages.indexOf(currentPage);
+      if (currentIndex < memoizedParsedPages.length - 1) {
+        setCurrentPage(memoizedParsedPages[currentIndex + 1]);
       }
     } else {
       setCurrentPage((prev) => Math.min(numPages, prev + 1));
@@ -147,13 +144,13 @@ export default function PdfPageModal({
   };
 
   const canGoPrevious =
-    parsedPages.length > 0
-      ? parsedPages.indexOf(currentPage) > 0
+    memoizedParsedPages.length > 0
+      ? memoizedParsedPages.indexOf(currentPage) > 0
       : currentPage > 1;
 
   const canGoNext =
-    parsedPages.length > 0
-      ? parsedPages.indexOf(currentPage) < parsedPages.length - 1
+    memoizedParsedPages.length > 0
+      ? memoizedParsedPages.indexOf(currentPage) < memoizedParsedPages.length - 1
       : currentPage < numPages;
 
   return (
@@ -171,8 +168,8 @@ export default function PdfPageModal({
               {scannedPages}
             </p>
             <p className="text-xs text-emerald-600 mt-1">
-              Showing {parsedPages.length} page
-              {parsedPages.length !== 1 ? "s" : ""}
+              Showing {memoizedParsedPages.length} page
+              {memoizedParsedPages.length !== 1 ? "s" : ""}
             </p>
           </div>
         )}
@@ -189,9 +186,9 @@ export default function PdfPageModal({
 
             <span className="text-sm font-medium text-gray-700 px-3">
               Page {currentPage} of {numPages}
-              {parsedPages.length > 0 && (
+              {memoizedParsedPages.length > 0 && (
                 <span className="text-gray-500 ml-1">
-                  ({parsedPages.indexOf(currentPage) + 1}/{parsedPages.length}{" "}
+                  ({memoizedParsedPages.indexOf(currentPage) + 1}/{memoizedParsedPages.length}{" "}
                   scanned)
                 </span>
               )}

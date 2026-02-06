@@ -34,12 +34,10 @@ export default function FolderBrowser({
   const [showUpload, setShowUpload] = useState(false);
   const [showUploadTemplate, setShowUploadTemplate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "scanned" | "unscanned"
-  >("all");
-  const [sortBy, setSortBy] = useState<
-    "name-asc" | "name-desc" | "date" | "size"
-  >("name-asc");
+  const [filterStatus] = useState<"all" | "scanned" | "unscanned">("all");
+  const [sortBy] = useState<"name-asc" | "name-desc" | "date" | "size">(
+    "name-asc",
+  );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [allFiles, setAllFiles] = useState<PdfFile[]>([]);
@@ -215,10 +213,6 @@ export default function FolderBrowser({
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Ribbon
-        filterStatus={filterStatus}
-        onFilterChange={setFilterStatus}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
         refreshTrigger={refreshTrigger}
       />
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import type { Folder } from "@/types";
 import {
   CaretRight,
@@ -98,46 +98,49 @@ export default function FolderSidebar({
   searchQuery,
   onSearchChange,
 }: FolderSidebarProps) {
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+  const computedExpandedFolders = useMemo(() => {
+    if (!searchQuery) {
+      return new Set<string>();
+    }
+
+    const foldersToExpand = new Set<string>();
+    
+    const findMatchingFolders = (folderId: string | null = null): void => {
+      const children = folders.filter((f) => f.parentId === folderId);
+      
+      for (const child of children) {
+        if (child.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+          let current = child.parentId;
+          while (current) {
+            foldersToExpand.add(current);
+            const parent = folders.find((f) => f.id === current);
+            current = parent?.parentId || null;
+          }
+        }
+        findMatchingFolders(child.id);
+      }
+    };
+    
+    findMatchingFolders();
+    return foldersToExpand;
+  }, [searchQuery, folders]);
+
+  const [manuallyExpandedFolders, setManuallyExpandedFolders] = useState<Set<string>>(
     new Set(),
   );
 
-  useEffect(() => {
-    if (searchQuery) {
-      const foldersToExpand = new Set<string>();
-      
-      const findMatchingFolders = (folderId: string | null = null): void => {
-        const children = folders.filter((f) => f.parentId === folderId);
-        
-        for (const child of children) {
-          if (child.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-            let current = child.parentId;
-            while (current) {
-              foldersToExpand.add(current);
-              const parent = folders.find((f) => f.id === current);
-              current = parent?.parentId || null;
-            }
-          }
-          findMatchingFolders(child.id);
-        }
-      };
-      
-      findMatchingFolders();
-      
-      if (foldersToExpand.size > 0) {
-        setExpandedFolders(foldersToExpand);
-      }
-    }
-  }, [searchQuery, folders]);
+  const expandedFolders = useMemo(() => {
+    return new Set([...computedExpandedFolders, ...manuallyExpandedFolders]);
+  }, [computedExpandedFolders, manuallyExpandedFolders]);
 
   const toggleExpand = (folderId: string) => {
-    const newExpanded = new Set(expandedFolders);
+    const newExpanded = new Set(manuallyExpandedFolders);
     if (newExpanded.has(folderId)) {
       newExpanded.delete(folderId);
     } else {
       newExpanded.add(folderId);
     }
-    setExpandedFolders(newExpanded);
+    setManuallyExpandedFolders(newExpanded);
   };
 
   const hasMatchingDescendant = (folderId: string): boolean => {
