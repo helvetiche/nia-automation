@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Modal from '../Modal';
-import { Trash } from '@phosphor-icons/react/dist/ssr';
+import { useState } from "react";
+import Modal from "../Modal";
+import { Trash } from "@phosphor-icons/react/dist/ssr";
 
 interface DeleteFolderModalProps {
   isOpen: boolean;
@@ -31,10 +31,12 @@ export default function DeleteFolderModal({
       <div className="p-6 space-y-6">
         <div>
           <p className="text-sm text-gray-700">
-            About to delete <span className="font-semibold text-gray-900">{folderName}</span>
+            About to delete{" "}
+            <span className="font-semibold text-gray-900">{folderName}</span>
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            All files and subfolders inside will be removed too. No going back after this.
+            All files and subfolders inside will be removed too. No going back
+            after this.
           </p>
         </div>
 
@@ -52,7 +54,7 @@ export default function DeleteFolderModal({
             className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center gap-2"
           >
             <Trash weight="regular" className="w-4 h-4" />
-            {deleting ? 'Deleting...' : 'Yes, Delete'}
+            {deleting ? "Deleting..." : "Yes, Delete"}
           </button>
         </div>
       </div>

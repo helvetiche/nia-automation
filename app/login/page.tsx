@@ -1,41 +1,41 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signInWithCustomToken } from 'firebase/auth';
-import { auth } from '@/lib/firebase/clientConfig';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signInWithCustomToken } from "firebase/auth";
+import { auth } from "@/lib/firebase/clientConfig";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const loginUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'login failed');
+        setError(data.error || "login failed");
         setLoading(false);
         return;
       }
 
       await signInWithCustomToken(auth, data.token);
-      router.push('/console');
+      router.push("/console");
     } catch {
-      setError('something went wrong');
+      setError("something went wrong");
       setLoading(false);
     }
   };
@@ -45,19 +45,24 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
-            src="/logo-nia-automation.jpg" 
-            alt="NIA Automation" 
+          <img
+            src="/logo-nia-automation.jpg"
+            alt="NIA Automation"
             className="w-16 h-16 rounded-lg mx-auto mb-4 object-cover"
           />
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">NIA Automation</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            NIA Automation
+          </h1>
           <p className="text-gray-600">Operations & Maintenance</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-8">
           <form onSubmit={loginUser} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Email Address
               </label>
               <input
@@ -72,7 +77,10 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Password
               </label>
               <input
@@ -97,7 +105,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-emerald-800 text-white py-3 px-4 rounded-lg font-medium hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-800 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
         </div>

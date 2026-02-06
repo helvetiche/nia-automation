@@ -1,4 +1,4 @@
-import ExcelJS from 'exceljs';
+import ExcelJS from "exceljs";
 
 interface IrrigatorData {
   no: number;
@@ -20,17 +20,13 @@ interface ReportData {
 
 export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet('Sheet1');
+  const worksheet = workbook.addWorksheet("Sheet1");
 
-  worksheet.columns = [
-    { width: 8 },
-    { width: 60 },
-    { width: 24 },
-  ];
+  worksheet.columns = [{ width: 8 }, { width: 60 }, { width: 24 }];
 
   worksheet.pageSetup = {
-    paperSize: 9,
-    orientation: 'portrait',
+    paperSize: 5,
+    orientation: "portrait",
     fitToPage: true,
     fitToWidth: 1,
     fitToHeight: 0,
@@ -40,102 +36,142 @@ export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
       top: 0.75,
       bottom: 0.75,
       header: 0.3,
-      footer: 0.3
-    }
+      footer: 0.3,
+    },
   };
 
   worksheet.views = [
-    { 
+    {
       showGridLines: false,
       zoomScale: 60,
-      zoomScaleNormal: 100
-    } as any
+      zoomScaleNormal: 100,
+    } as any,
   ];
 
   const titleRow = worksheet.addRow([data.title]);
-  titleRow.getCell(1).font = { name: 'Cambria', size: 12, bold: true };
-  titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-  titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCCCCC' } };
-  worksheet.mergeCells('A1:C1');
+  titleRow.getCell(1).font = { name: "Cambria", size: 12, bold: true };
+  titleRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
+  titleRow.getCell(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFCCCCCC" },
+  };
+  worksheet.mergeCells("A1:C1");
 
   const seasonRow = worksheet.addRow([data.season]);
-  seasonRow.getCell(1).font = { name: 'Cambria', size: 12, bold: true };
-  seasonRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-  seasonRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCCCCC' } };
-  worksheet.mergeCells('A2:C2');
+  seasonRow.getCell(1).font = { name: "Cambria", size: 12, bold: true };
+  seasonRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
+  seasonRow.getCell(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFCCCCCC" },
+  };
+  worksheet.mergeCells("A2:C2");
 
   worksheet.addRow([]);
 
-  const headerRow = worksheet.addRow(['NO.', 'IRRIGATORS ASSOCIATION', 'TOTAL PLANTED AREA']);
-  headerRow.getCell(1).font = { name: 'Cambria', size: 12, bold: true };
-  headerRow.getCell(2).font = { name: 'Cambria', size: 12, bold: true };
-  headerRow.getCell(3).font = { name: 'Cambria', size: 12, bold: true };
-  headerRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-  headerRow.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
-  headerRow.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
-  headerRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
-  headerRow.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
-  headerRow.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
+  const headerRow = worksheet.addRow([
+    "NO.",
+    "IRRIGATORS ASSOCIATION",
+    "TOTAL PLANTED AREA",
+  ]);
+  headerRow.getCell(1).font = { name: "Cambria", size: 12, bold: true };
+  headerRow.getCell(2).font = { name: "Cambria", size: 12, bold: true };
+  headerRow.getCell(3).font = { name: "Cambria", size: 12, bold: true };
+  headerRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
+  headerRow.getCell(2).alignment = { horizontal: "center", vertical: "middle" };
+  headerRow.getCell(3).alignment = { horizontal: "center", vertical: "middle" };
+  headerRow.getCell(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFD3D3D3" },
+  };
+  headerRow.getCell(2).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFD3D3D3" },
+  };
+  headerRow.getCell(3).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFD3D3D3" },
+  };
   headerRow.getCell(1).border = {
-    top: { style: 'thin' },
-    left: { style: 'thin' },
-    bottom: { style: 'thin' },
-    right: { style: 'thin' }
+    top: { style: "thin" },
+    left: { style: "thin" },
+    bottom: { style: "thin" },
+    right: { style: "thin" },
   };
   headerRow.getCell(2).border = {
-    top: { style: 'thin' },
-    left: { style: 'thin' },
-    bottom: { style: 'thin' },
-    right: { style: 'thin' }
+    top: { style: "thin" },
+    left: { style: "thin" },
+    bottom: { style: "thin" },
+    right: { style: "thin" },
   };
   headerRow.getCell(3).border = {
-    top: { style: 'thin' },
-    left: { style: 'thin' },
-    bottom: { style: 'thin' },
-    right: { style: 'thin' }
+    top: { style: "thin" },
+    left: { style: "thin" },
+    bottom: { style: "thin" },
+    right: { style: "thin" },
   };
 
   let grandTotal = 0;
 
   data.divisions.forEach((division) => {
-    const cleanName = division.divisionName.replace(/\.pdf$/i, '');
+    const cleanName = division.divisionName.replace(/\.pdf$/i, "");
     const divisionRow = worksheet.addRow([cleanName]);
-    divisionRow.getCell(1).font = { name: 'Cambria', size: 12, bold: true };
-    divisionRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4D6' } };
+    divisionRow.getCell(1).font = { name: "Cambria", size: 12, bold: true };
+    divisionRow.getCell(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFFCE4D6" },
+    };
     worksheet.mergeCells(`A${divisionRow.number}:C${divisionRow.number}`);
 
     division.irrigators.forEach((irrigator) => {
-      const row = worksheet.addRow([irrigator.no, irrigator.name, irrigator.totalPlantedArea]);
-      row.font = { name: 'Cambria', size: 12 };
-      row.getCell(1).alignment = { horizontal: 'left' };
-      row.getCell(3).numFmt = '#,##0.00';
+      const row = worksheet.addRow([
+        irrigator.no,
+        irrigator.name,
+        irrigator.totalPlantedArea,
+      ]);
+      row.font = { name: "Cambria", size: 12 };
+      row.getCell(1).alignment = { horizontal: "left" };
+      row.getCell(3).numFmt = "#,##0.00";
       row.eachCell((cell) => {
         cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
         };
       });
     });
 
-    const totalRow = worksheet.addRow(['TOTAL', '', division.total]);
-    totalRow.font = { name: 'Cambria', size: 12, bold: true };
-    totalRow.getCell(1).alignment = { horizontal: 'left' };
-    totalRow.getCell(3).numFmt = '#,##0.00';
+    const totalRow = worksheet.addRow(["TOTAL", "", division.total]);
+    totalRow.font = { name: "Cambria", size: 12, bold: true };
+    totalRow.getCell(1).alignment = { horizontal: "left" };
+    totalRow.getCell(3).numFmt = "#,##0.00";
     grandTotal += division.total;
 
     worksheet.addRow([]);
   });
 
-  const grandTotalRow = worksheet.addRow(['GRAND TOTAL', '', grandTotal]);
+  const grandTotalRow = worksheet.addRow(["GRAND TOTAL", "", grandTotal]);
   worksheet.mergeCells(`A${grandTotalRow.number}:B${grandTotalRow.number}`);
-  grandTotalRow.getCell(1).font = { name: 'Cambria', size: 12, bold: true };
-  grandTotalRow.getCell(3).font = { name: 'Cambria', size: 12, bold: true };
-  grandTotalRow.getCell(1).alignment = { horizontal: 'left' };
-  grandTotalRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF92D052' } };
-  grandTotalRow.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF92D052' } };
-  grandTotalRow.getCell(3).numFmt = '#,##0.00';
+  grandTotalRow.getCell(1).font = { name: "Cambria", size: 12, bold: true };
+  grandTotalRow.getCell(3).font = { name: "Cambria", size: 12, bold: true };
+  grandTotalRow.getCell(1).alignment = { horizontal: "left" };
+  grandTotalRow.getCell(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF92D052" },
+  };
+  grandTotalRow.getCell(3).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF92D052" },
+  };
+  grandTotalRow.getCell(3).numFmt = "#,##0.00";
 
   worksheet.pageSetup.printArea = `A1:C${grandTotalRow.number}`;
 
@@ -145,8 +181,8 @@ export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
 
 export function parseExcelTemplate(buffer: Buffer): ReportData {
   return {
-    title: 'LIST OF IRRIGATED AND PLANTED AREA (LIPA)',
-    season: 'DRY CROPPING SEASON 2025',
+    title: "LIST OF IRRIGATED AND PLANTED AREA (LIPA)",
+    season: "DRY CROPPING SEASON 2025",
     divisions: [],
   };
 }

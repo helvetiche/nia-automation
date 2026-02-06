@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import type { PdfFile } from '@/types';
-import Modal from '@/components/Modal';
+import { useState } from "react";
+import type { PdfFile } from "@/types";
+import Modal from "@/components/Modal";
 
 interface SummaryModalProps {
   isOpen: boolean;
@@ -10,7 +10,11 @@ interface SummaryModalProps {
   file: PdfFile;
 }
 
-export default function SummaryModal({ isOpen, onClose, file }: SummaryModalProps) {
+export default function SummaryModal({
+  isOpen,
+  onClose,
+  file,
+}: SummaryModalProps) {
   const [showAverage, setShowAverage] = useState(false);
   const pageData = [];
 
@@ -25,23 +29,49 @@ export default function SummaryModal({ isOpen, onClose, file }: SummaryModalProp
 
       if (page.tableData && Array.isArray(page.tableData)) {
         for (const row of page.tableData) {
-          const rowValues = Object.values(row).map(v => String(v).toLowerCase());
-          const isTotalRow = rowValues.some(v => 
-            v.includes('total') || 
-            v.includes('subtotal') || 
-            v.includes('grand total') ||
-            v.includes('sum')
+          const rowValues = Object.values(row).map((v) =>
+            String(v).toLowerCase(),
           );
-          
+          const isTotalRow = rowValues.some(
+            (v) =>
+              v.includes("total") ||
+              v.includes("subtotal") ||
+              v.includes("grand total") ||
+              v.includes("sum"),
+          );
+
           if (isTotalRow) continue;
 
-          const areaKeys = ['area', 'Area', 'AREA', 'total area', 'Total Area', 'TOTAL AREA'];
-          const irrigatedKeys = ['irrigated', 'Irrigated', 'IRRIGATED', 'irrigated area', 'Irrigated Area', 'IRRIGATED AREA'];
-          const plantedKeys = ['planted', 'Planted', 'PLANTED', 'planted area', 'Planted Area', 'PLANTED AREA'];
+          const areaKeys = [
+            "area",
+            "Area",
+            "AREA",
+            "total area",
+            "Total Area",
+            "TOTAL AREA",
+          ];
+          const irrigatedKeys = [
+            "irrigated",
+            "Irrigated",
+            "IRRIGATED",
+            "irrigated area",
+            "Irrigated Area",
+            "IRRIGATED AREA",
+          ];
+          const plantedKeys = [
+            "planted",
+            "Planted",
+            "PLANTED",
+            "planted area",
+            "Planted Area",
+            "PLANTED AREA",
+          ];
 
           for (const key of areaKeys) {
             if (key in row && row[key]) {
-              const value = parseFloat(String(row[key]).replace(/[^0-9.-]/g, ''));
+              const value = parseFloat(
+                String(row[key]).replace(/[^0-9.-]/g, ""),
+              );
               if (!isNaN(value) && value > 0) {
                 totalArea += value;
                 areaCount++;
@@ -52,7 +82,9 @@ export default function SummaryModal({ isOpen, onClose, file }: SummaryModalProp
 
           for (const key of irrigatedKeys) {
             if (key in row && row[key]) {
-              const value = parseFloat(String(row[key]).replace(/[^0-9.-]/g, ''));
+              const value = parseFloat(
+                String(row[key]).replace(/[^0-9.-]/g, ""),
+              );
               if (!isNaN(value) && value > 0) {
                 totalIrrigatedArea += value;
                 irrigatedCount++;
@@ -63,7 +95,9 @@ export default function SummaryModal({ isOpen, onClose, file }: SummaryModalProp
 
           for (const key of plantedKeys) {
             if (key in row && row[key]) {
-              const value = parseFloat(String(row[key]).replace(/[^0-9.-]/g, ''));
+              const value = parseFloat(
+                String(row[key]).replace(/[^0-9.-]/g, ""),
+              );
               if (!isNaN(value) && value > 0) {
                 totalPlantedArea += value;
                 plantedCount++;
@@ -80,7 +114,8 @@ export default function SummaryModal({ isOpen, onClose, file }: SummaryModalProp
         totalIrrigatedArea,
         totalPlantedArea,
         avgArea: areaCount > 0 ? totalArea / areaCount : 0,
-        avgIrrigatedArea: irrigatedCount > 0 ? totalIrrigatedArea / irrigatedCount : 0,
+        avgIrrigatedArea:
+          irrigatedCount > 0 ? totalIrrigatedArea / irrigatedCount : 0,
         avgPlantedArea: plantedCount > 0 ? totalPlantedArea / plantedCount : 0,
         rowCount: Math.max(areaCount, irrigatedCount, plantedCount),
       });
@@ -104,7 +139,7 @@ export default function SummaryModal({ isOpen, onClose, file }: SummaryModalProp
             onClick={() => setShowAverage(!showAverage)}
             className="px-4 py-2 bg-emerald-800 text-white rounded-lg hover:bg-emerald-900 transition text-sm font-medium"
           >
-            {showAverage ? 'Show Totals' : 'Show Averages'}
+            {showAverage ? "Show Totals" : "Show Averages"}
           </button>
         </div>
       </div>
@@ -114,40 +149,58 @@ export default function SummaryModal({ isOpen, onClose, file }: SummaryModalProp
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900">Page</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-900">
-                  {showAverage ? 'Avg ' : ''}Area
+                <th className="px-4 py-3 text-left font-semibold text-gray-900">
+                  Page
                 </th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-900">
-                  {showAverage ? 'Avg ' : ''}Irrigated
+                  {showAverage ? "Avg " : ""}Area
                 </th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-900">
-                  {showAverage ? 'Avg ' : ''}Planted
+                  {showAverage ? "Avg " : ""}Irrigated
                 </th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-900">Rows</th>
+                <th className="px-4 py-3 text-right font-semibold text-gray-900">
+                  {showAverage ? "Avg " : ""}Planted
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-gray-900">
+                  Rows
+                </th>
               </tr>
             </thead>
             <tbody>
               {pageData.map((page) => (
-                <tr key={page.pageNumber} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-900 font-medium">Page {page.pageNumber}</td>
-                  <td className="px-4 py-3 text-right text-gray-700 font-mono">
-                    {showAverage
-                      ? page.avgArea > 0 ? page.avgArea.toFixed(2) : '--'
-                      : page.totalArea > 0 ? page.totalArea.toFixed(2) : '--'
-                    }
+                <tr
+                  key={page.pageNumber}
+                  className="border-b border-gray-100 hover:bg-gray-50"
+                >
+                  <td className="px-4 py-3 text-gray-900 font-medium">
+                    Page {page.pageNumber}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-700 font-mono">
                     {showAverage
-                      ? page.avgIrrigatedArea > 0 ? page.avgIrrigatedArea.toFixed(2) : '--'
-                      : page.totalIrrigatedArea > 0 ? page.totalIrrigatedArea.toFixed(2) : '--'
-                    }
+                      ? page.avgArea > 0
+                        ? page.avgArea.toFixed(2)
+                        : "--"
+                      : page.totalArea > 0
+                        ? page.totalArea.toFixed(2)
+                        : "--"}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-700 font-mono">
                     {showAverage
-                      ? page.avgPlantedArea > 0 ? page.avgPlantedArea.toFixed(2) : '--'
-                      : page.totalPlantedArea > 0 ? page.totalPlantedArea.toFixed(2) : '--'
-                    }
+                      ? page.avgIrrigatedArea > 0
+                        ? page.avgIrrigatedArea.toFixed(2)
+                        : "--"
+                      : page.totalIrrigatedArea > 0
+                        ? page.totalIrrigatedArea.toFixed(2)
+                        : "--"}
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-700 font-mono">
+                    {showAverage
+                      ? page.avgPlantedArea > 0
+                        ? page.avgPlantedArea.toFixed(2)
+                        : "--"
+                      : page.totalPlantedArea > 0
+                        ? page.totalPlantedArea.toFixed(2)
+                        : "--"}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-600 font-mono text-xs">
                     {page.rowCount}

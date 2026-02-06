@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Modal from '@/components/Modal';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { useState, useEffect } from "react";
+import Modal from "@/components/Modal";
+import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 
 interface PdfPageModalProps {
   isOpen: boolean;
@@ -12,7 +12,13 @@ interface PdfPageModalProps {
   fileName: string;
 }
 
-export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fileName }: PdfPageModalProps) {
+export default function PdfPageModal({
+  isOpen,
+  onClose,
+  pdfUrl,
+  scannedPages,
+  fileName,
+}: PdfPageModalProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,32 +29,32 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
   } | null>(null);
 
   const parsedPages = scannedPages ? parsePageNumbers(scannedPages) : [];
-  
+
   const [currentPage, setCurrentPage] = useState<number>(() => {
     return parsedPages.length > 0 ? parsedPages[0] : 1;
   });
 
   useEffect(() => {
     let mounted = true;
-    
+
     const loadPdfComponents = async () => {
       try {
-        if (typeof window !== 'undefined') {
-          const reactPdf = await import('react-pdf');
-          
-          reactPdf.pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs';
-          
+        if (typeof window !== "undefined") {
+          const reactPdf = await import("react-pdf");
+
+          reactPdf.pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.mjs";
+
           if (mounted) {
             setPdfComponents({
               Document: reactPdf.Document,
-              Page: reactPdf.Page
+              Page: reactPdf.Page,
             });
           }
         }
       } catch (err) {
-        console.error('Failed to load PDF components:', err);
+        console.error("Failed to load PDF components:", err);
         if (mounted) {
-          setError('Failed to load PDF viewer');
+          setError("Failed to load PDF viewer");
           setLoading(false);
         }
       }
@@ -72,19 +78,23 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && parsedPages.length > 0 && !parsedPages.includes(currentPage)) {
+    if (
+      isOpen &&
+      parsedPages.length > 0 &&
+      !parsedPages.includes(currentPage)
+    ) {
       setCurrentPage(parsedPages[0]);
     }
   }, [isOpen, parsedPages, currentPage]);
 
   function parsePageNumbers(pageStr: string): number[] {
     const pages: number[] = [];
-    const parts = pageStr.split(',');
-    
+    const parts = pageStr.split(",");
+
     for (const part of parts) {
       const trimmed = part.trim();
-      if (trimmed.includes('-')) {
-        const [start, end] = trimmed.split('-').map(n => parseInt(n.trim()));
+      if (trimmed.includes("-")) {
+        const [start, end] = trimmed.split("-").map((n) => parseInt(n.trim()));
         if (!isNaN(start) && !isNaN(end)) {
           for (let i = start; i <= end; i++) {
             pages.push(i);
@@ -97,20 +107,20 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
         }
       }
     }
-    
+
     return [...new Set(pages)].sort((a, b) => a - b);
   }
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
-    console.log('PDF loaded successfully, pages:', numPages);
+    console.log("PDF loaded successfully, pages:", numPages);
     setNumPages(numPages);
     setLoading(false);
     setError(null);
   }
 
   function onDocumentLoadError(error: Error) {
-    console.error('PDF load error:', error);
-    setError('PDF viewer is having trouble loading this file');
+    console.error("PDF load error:", error);
+    setError("PDF viewer is having trouble loading this file");
     setLoading(false);
   }
 
@@ -121,7 +131,7 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
         setCurrentPage(parsedPages[currentIndex - 1]);
       }
     } else {
-      setCurrentPage(prev => Math.max(1, prev - 1));
+      setCurrentPage((prev) => Math.max(1, prev - 1));
     }
   };
 
@@ -132,28 +142,37 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
         setCurrentPage(parsedPages[currentIndex + 1]);
       }
     } else {
-      setCurrentPage(prev => Math.min(numPages, prev + 1));
+      setCurrentPage((prev) => Math.min(numPages, prev + 1));
     }
   };
 
-  const canGoPrevious = parsedPages.length > 0 
-    ? parsedPages.indexOf(currentPage) > 0 
-    : currentPage > 1;
+  const canGoPrevious =
+    parsedPages.length > 0
+      ? parsedPages.indexOf(currentPage) > 0
+      : currentPage > 1;
 
-  const canGoNext = parsedPages.length > 0 
-    ? parsedPages.indexOf(currentPage) < parsedPages.length - 1 
-    : currentPage < numPages;
+  const canGoNext =
+    parsedPages.length > 0
+      ? parsedPages.indexOf(currentPage) < parsedPages.length - 1
+      : currentPage < numPages;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`PDF Pages - ${fileName}`} size="large">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`PDF Pages - ${fileName}`}
+      size="large"
+    >
       <div className="p-6">
         {scannedPages && (
           <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
             <p className="text-sm text-emerald-700">
-              <span className="font-semibold">Scanned Pages:</span> {scannedPages}
+              <span className="font-semibold">Scanned Pages:</span>{" "}
+              {scannedPages}
             </p>
             <p className="text-xs text-emerald-600 mt-1">
-              Showing {parsedPages.length} page{parsedPages.length !== 1 ? 's' : ''}
+              Showing {parsedPages.length} page
+              {parsedPages.length !== 1 ? "s" : ""}
             </p>
           </div>
         )}
@@ -167,16 +186,17 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
             >
               <CaretLeft weight="regular" className="w-5 h-5" />
             </button>
-            
+
             <span className="text-sm font-medium text-gray-700 px-3">
               Page {currentPage} of {numPages}
               {parsedPages.length > 0 && (
                 <span className="text-gray-500 ml-1">
-                  ({parsedPages.indexOf(currentPage) + 1}/{parsedPages.length} scanned)
+                  ({parsedPages.indexOf(currentPage) + 1}/{parsedPages.length}{" "}
+                  scanned)
                 </span>
               )}
             </span>
-            
+
             <button
               onClick={goToNext}
               disabled={!canGoNext}
@@ -188,7 +208,7 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setScale(prev => Math.max(0.5, prev - 0.25))}
+              onClick={() => setScale((prev) => Math.max(0.5, prev - 0.25))}
               className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition"
             >
               Zoom Out
@@ -197,7 +217,7 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
               {Math.round(scale * 100)}%
             </span>
             <button
-              onClick={() => setScale(prev => Math.min(2.0, prev + 0.25))}
+              onClick={() => setScale((prev) => Math.min(2.0, prev + 0.25))}
               className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition"
             >
               Zoom In
@@ -218,7 +238,7 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
                 <div className="text-gray-500">Loading PDF...</div>
               </div>
             )}
-            
+
             {error && (
               <div className="flex items-center justify-center h-96">
                 <div className="text-red-500">{error}</div>
@@ -230,8 +250,8 @@ export default function PdfPageModal({ isOpen, onClose, pdfUrl, scannedPages, fi
                 file={{
                   url: pdfUrl,
                   httpHeaders: {
-                    'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('authToken') : ''}`
-                  }
+                    Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("authToken") : ""}`,
+                  },
                 }}
                 onLoadSuccess={onDocumentLoadSuccess}
                 onLoadError={onDocumentLoadError}

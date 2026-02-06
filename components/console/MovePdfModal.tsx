@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import type { Folder, PdfFile } from '@/types';
-import Modal from '@/components/Modal';
-import { FolderOpen } from '@phosphor-icons/react';
+import { useState } from "react";
+import type { Folder, PdfFile } from "@/types";
+import Modal from "@/components/Modal";
+import { FolderOpen } from "@phosphor-icons/react";
 
 interface MovePdfModalProps {
   isOpen: boolean;
@@ -48,8 +48,8 @@ export default function MovePdfModal({
               onClick={() => setSelectedFolderId(null)}
               className={`w-full text-left px-3 py-2 rounded-lg transition flex items-center gap-2 ${
                 selectedFolderId === null
-                  ? 'bg-emerald-50 text-emerald-800 font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? "bg-emerald-50 text-emerald-800 font-medium"
+                  : "text-gray-700 hover:bg-gray-100"
               }`}
             >
               <FolderOpen weight="regular" className="w-4 h-4" />
@@ -62,10 +62,10 @@ export default function MovePdfModal({
                 onClick={() => setSelectedFolderId(folder.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg transition flex items-center gap-2 ${
                   selectedFolderId === folder.id
-                    ? 'bg-emerald-50 text-emerald-800 font-medium'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? "bg-emerald-50 text-emerald-800 font-medium"
+                    : "text-gray-700 hover:bg-gray-100"
                 }`}
-                style={{ paddingLeft: `${12 + (folder.level * 16)}px` }}
+                style={{ paddingLeft: `${12 + folder.level * 16}px` }}
               >
                 <FolderOpen weight="regular" className="w-4 h-4" />
                 {folder.name}

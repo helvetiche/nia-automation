@@ -1,31 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase/adminConfig';
-import { verifyOperator } from '@/lib/auth/middleware';
+import { NextRequest, NextResponse } from "next/server";
+import { adminDb } from "@/lib/firebase/adminConfig";
+import { verifyOperator } from "@/lib/auth/middleware";
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.split('Bearer ')[1];
+    const token = request.headers.get("authorization")?.split("Bearer ")[1];
     if (!token) {
-      return NextResponse.json({ error: 'not authorized' }, { status: 401 });
+      return NextResponse.json({ error: "not authorized" }, { status: 401 });
     }
 
     const decodedToken = await verifyOperator(token);
     const userId = decodedToken.uid;
 
-    const pdfId = request.nextUrl.searchParams.get('pdfId');
+    const pdfId = request.nextUrl.searchParams.get("pdfId");
 
     if (!pdfId) {
-      return NextResponse.json({ error: 'pdf id required' }, { status: 400 });
+      return NextResponse.json({ error: "pdf id required" }, { status: 400 });
     }
 
-    const pdfDoc = await adminDb().collection('pdfs').doc(pdfId).get();
+    const pdfDoc = await adminDb().collection("pdfs").doc(pdfId).get();
     if (!pdfDoc.exists) {
-      return NextResponse.json({ error: 'pdf not found' }, { status: 404 });
+      return NextResponse.json({ error: "pdf not found" }, { status: 404 });
     }
 
     const pdfData = pdfDoc.data();
     if (pdfData?.userId !== userId) {
-      return NextResponse.json({ error: 'not authorized' }, { status: 403 });
+      return NextResponse.json({ error: "not authorized" }, { status: 403 });
     }
 
     const pages = pdfData?.extractedData || [];
@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
       { pages },
       {
         headers: {
-          'Cache-Control': 'private, max-age=300, stale-while-revalidate=600',
+          "Cache-Control": "private, max-age=300, stale-while-revalidate=600",
         },
-      }
+      },
     );
   } catch (error) {
-    console.error('pages fetch error:', error);
-    return NextResponse.json({ error: 'something broke' }, { status: 500 });
+    console.error("pages fetch error:", error);
+    return NextResponse.json({ error: "something broke" }, { status: 500 });
   }
 }

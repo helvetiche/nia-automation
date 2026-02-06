@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/adminConfig';
+import { NextRequest, NextResponse } from "next/server";
+import { adminAuth } from "@/lib/firebase/adminConfig";
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,8 +7,8 @@ export async function POST(request: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'email and password needed' },
-        { status: 400 }
+        { error: "email and password needed" },
+        { status: 400 },
       );
     }
 
@@ -17,19 +17,22 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'wrong email or password' },
-        { status: 401 }
+        { error: "wrong email or password" },
+        { status: 401 },
       );
     }
 
     const token = await auth.createCustomToken(user.uid);
 
-    return NextResponse.json({ token, user: { uid: user.uid, email: user.email } });
+    return NextResponse.json({
+      token,
+      user: { uid: user.uid, email: user.email },
+    });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Login error:", error);
     return NextResponse.json(
-      { error: 'something broke on our end' },
-      { status: 500 }
+      { error: "something broke on our end" },
+      { status: 500 },
     );
   }
 }

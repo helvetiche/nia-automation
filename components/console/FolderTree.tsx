@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import type { Folder } from '@/types';
-import { apiCall } from '@/lib/api/client';
+import { useState } from "react";
+import type { Folder } from "@/types";
+import { apiCall } from "@/lib/api/client";
 
 interface FolderTreeProps {
   folders: Folder[];
@@ -18,7 +18,7 @@ export default function FolderTree({
   onRefresh,
 }: FolderTreeProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderName, setNewFolderName] = useState("");
   const [creating, setCreating] = useState(false);
 
   const createFolder = async () => {
@@ -26,9 +26,9 @@ export default function FolderTree({
 
     setCreating(true);
     try {
-      const response = await apiCall('/api/folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await apiCall("/api/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newFolderName,
           parentId: currentFolder,
@@ -36,12 +36,12 @@ export default function FolderTree({
       });
 
       if (response.ok) {
-        setNewFolderName('');
+        setNewFolderName("");
         setShowCreateModal(false);
         await onRefresh();
       }
     } catch (error) {
-      console.error('folder creation failed:', error);
+      console.error("folder creation failed:", error);
     } finally {
       setCreating(false);
     }
@@ -61,12 +61,22 @@ export default function FolderTree({
           onClick={() => onSelectFolder(folder.id)}
           className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition ${
             isSelected
-              ? 'bg-emerald-800 text-white'
-              : 'hover:bg-gray-100 text-gray-700'
+              ? "bg-emerald-800 text-white"
+              : "hover:bg-gray-100 text-gray-700"
           }`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+            />
           </svg>
           <span className="text-sm">{folder.name}</span>
         </button>
@@ -82,12 +92,22 @@ export default function FolderTree({
           onClick={() => onSelectFolder(null)}
           className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition ${
             currentFolder === null
-              ? 'bg-emerald-800 text-white'
-              : 'hover:bg-gray-100 text-gray-700'
+              ? "bg-emerald-800 text-white"
+              : "hover:bg-gray-100 text-gray-700"
           }`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            />
           </svg>
           <span className="text-sm font-medium">Root</span>
         </button>
@@ -119,7 +139,7 @@ export default function FolderTree({
                 disabled={creating}
                 className="flex-1 px-4 py-2 bg-emerald-800 text-white rounded-lg hover:bg-emerald-900 disabled:opacity-50"
               >
-                {creating ? 'Creating...' : 'Create'}
+                {creating ? "Creating..." : "Create"}
               </button>
               <button
                 onClick={() => setShowCreateModal(false)}

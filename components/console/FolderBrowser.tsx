@@ -1,27 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import type { Folder, PdfFile } from '@/types';
-import Ribbon from './Ribbon';
-import FileGrid from './FileGrid';
-import CreateFolderModal from './CreateFolderModal';
-import UploadModal from './UploadModal';
-import UploadTemplateModal from './UploadTemplateModal';
-import TemplateModal from './TemplateModal';
-import { apiCall } from '@/lib/api/client';
+import { useState, useEffect, useMemo } from "react";
+import type { Folder, PdfFile } from "@/types";
+import Ribbon from "./Ribbon";
+import FileGrid from "./FileGrid";
+import CreateFolderModal from "./CreateFolderModal";
+import UploadModal from "./UploadModal";
+import UploadTemplateModal from "./UploadTemplateModal";
+import { apiCall } from "@/lib/api/client";
 
 interface FolderBrowserProps {
-  onViewPdf: (pdf: PdfFile) => void;
-  viewMode: 'grid' | 'table';
-  onViewModeChange: (mode: 'grid' | 'table') => void;
+  viewMode: "grid" | "table";
+  onViewModeChange: (mode: "grid" | "table") => void;
 }
 
 const STORAGE_KEYS = {
-  viewMode: 'nia-view-mode',
-  currentFolder: 'nia-current-folder',
+  viewMode: "nia-view-mode",
+  currentFolder: "nia-current-folder",
 };
 
-export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }: FolderBrowserProps) {
+export default function FolderBrowser({
+  viewMode,
+  onViewModeChange,
+}: FolderBrowserProps) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<PdfFile[]>([]);
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
@@ -29,33 +30,36 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [showUploadTemplate, setShowUploadTemplate] = useState(false);
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'scanned' | 'unscanned'>('all');
-  const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'date' | 'size'>('name-asc');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "scanned" | "unscanned"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "name-asc" | "name-desc" | "date" | "size"
+  >("name-asc");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const loadFolders = async () => {
     try {
-      const response = await apiCall('/api/folders');
+      const response = await apiCall("/api/folders");
       const data = await response.json();
       setFolders(data.folders || []);
     } catch (error) {
-      console.error('folder load failed:', error);
+      console.error("folder load failed:", error);
     }
   };
 
   const loadFiles = async (folderId: string | null) => {
     try {
       const timestamp = Date.now();
-      const url = folderId 
-        ? `/api/files?folderId=${folderId}&t=${timestamp}` 
+      const url = folderId
+        ? `/api/files?folderId=${folderId}&t=${timestamp}`
         : `/api/files?t=${timestamp}`;
       const response = await apiCall(url);
       const data = await response.json();
       setFiles(data.files || []);
     } catch (error) {
-      console.error('file load failed:', error);
+      console.error("file load failed:", error);
     }
   };
 
@@ -65,7 +69,7 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
 
       await loadFolders();
       await loadFiles(savedFolder || null);
-      
+
       if (savedFolder) {
         setCurrentFolder(savedFolder);
       }
@@ -78,7 +82,7 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
   const selectFolder = async (folderId: string | null) => {
     setLoading(true);
     setCurrentFolder(folderId);
-    localStorage.setItem(STORAGE_KEYS.currentFolder, folderId || '');
+    localStorage.setItem(STORAGE_KEYS.currentFolder, folderId || "");
     await loadFiles(folderId);
     setLoading(false);
   };
@@ -91,7 +95,7 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
     }
     await loadFolders();
     await loadFiles(currentFolder);
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
     setLoading(false);
   };
 
@@ -99,11 +103,11 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
     const newFiles: PdfFile[] = uploadedFiles.map((file) => ({
       id: `temp-${Date.now()}-${Math.random()}`,
       name: file.name,
-      folderId: currentFolder || '',
-      status: 'unscanned' as const,
+      folderId: currentFolder || "",
+      status: "unscanned" as const,
       uploadedAt: Date.now(),
-      storageUrl: '',
-      userId: '',
+      storageUrl: "",
+      userId: "",
     }));
 
     setFiles([...files, ...newFiles]);
@@ -114,23 +118,25 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
 
     if (searchQuery) {
       result = result.filter((file) =>
-        file.name.toLowerCase().includes(searchQuery.toLowerCase())
+        file.name.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
-    if (filterStatus !== 'all') {
+    if (filterStatus !== "all") {
       result = result.filter((file) => file.status === filterStatus);
     }
 
     result.sort((a, b) => {
       switch (sortBy) {
-        case 'name-asc':
+        case "name-asc":
           return a.name.localeCompare(b.name);
-        case 'name-desc':
+        case "name-desc":
           return b.name.localeCompare(a.name);
-        case 'date':
-          return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
-        case 'size':
+        case "date":
+          return (
+            new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+          );
+        case "size":
           return (b.pageCount || 0) - (a.pageCount || 0);
         default:
           return 0;
@@ -140,26 +146,37 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
     return result;
   }, [files, searchQuery, filterStatus, sortBy]);
 
-  const exportToExcel = async (templateId: string | null) => {
-    if (!currentFolder) {
-      alert('Please select a folder first');
+  const exportToExcel = async (
+    templateId: string | null,
+    fileIds?: string[],
+  ) => {
+    if (!currentFolder && !fileIds) {
+      alert("Please select a folder first");
       return;
     }
 
     try {
-      const url = templateId 
-        ? `/api/reports/lipa?folderId=${currentFolder}&templateId=${templateId}`
-        : `/api/reports/lipa?folderId=${currentFolder}`;
-      
+      let url: string;
+
+      if (fileIds && fileIds.length > 0) {
+        url = `/api/reports/lipa?fileIds=${fileIds.join(",")}`;
+      } else if (currentFolder) {
+        url = templateId
+          ? `/api/reports/lipa?folderId=${currentFolder}&templateId=${templateId}`
+          : `/api/reports/lipa?folderId=${currentFolder}`;
+      } else {
+        return;
+      }
+
       const response = await apiCall(url);
-      
+
       if (!response.ok) {
-        throw new Error('export failed');
+        throw new Error("export failed");
       }
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = downloadUrl;
       a.download = `LIPA_Report_${Date.now()}.xlsx`;
       document.body.appendChild(a);
@@ -167,9 +184,13 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
       window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('export broken:', error);
-      alert('export failed, try again');
+      console.error("export broken:", error);
+      alert("export failed, try again");
     }
+  };
+
+  const handleScanComplete = (fileIds: string[]) => {
+    exportToExcel(null, fileIds);
   };
 
   return (
@@ -187,15 +208,14 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
         onSortChange={setSortBy}
         refreshTrigger={refreshTrigger}
         currentFolderId={currentFolder}
-        onExportExcel={() => setShowTemplateModal(true)}
+        onExportExcel={() => exportToExcel(null)}
       />
-      
+
       <FileGrid
         folders={folders}
         files={filteredFiles}
         currentFolder={currentFolder}
         onSelectFolder={selectFolder}
-        onViewPdf={onViewPdf}
         onRefresh={refreshData}
         onCreateFolder={() => setShowCreateFolder(true)}
         onUploadFile={() => setShowUpload(true)}
@@ -218,6 +238,7 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
           onClose={() => setShowUpload(false)}
           onSuccess={refreshData}
           onUploadOptimistic={handleUploadOptimistic}
+          onScanComplete={handleScanComplete}
         />
       )}
 
@@ -225,13 +246,6 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
         <UploadTemplateModal
           onClose={() => setShowUploadTemplate(false)}
           onSuccess={() => setShowUploadTemplate(false)}
-        />
-      )}
-
-      {showTemplateModal && currentFolder && (
-        <TemplateModal
-          onClose={() => setShowTemplateModal(false)}
-          onSelectTemplate={exportToExcel}
         />
       )}
     </div>

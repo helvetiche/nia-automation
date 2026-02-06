@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Modal from '../Modal';
-import { apiCall } from '@/lib/api/client';
-import { FileXls, Upload, X } from '@phosphor-icons/react';
+import { useState, useEffect } from "react";
+import Modal from "../Modal";
+import { apiCall } from "@/lib/api/client";
+import { FileXls, Upload, X } from "@phosphor-icons/react";
 
 interface Template {
   id: string;
@@ -17,7 +17,10 @@ interface TemplateModalProps {
   onSelectTemplate: (templateId: string | null) => void;
 }
 
-export default function TemplateModal({ onClose, onSelectTemplate }: TemplateModalProps) {
+export default function TemplateModal({
+  onClose,
+  onSelectTemplate,
+}: TemplateModalProps) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -29,11 +32,11 @@ export default function TemplateModal({ onClose, onSelectTemplate }: TemplateMod
 
   const loadTemplates = async () => {
     try {
-      const response = await apiCall('/api/templates');
+      const response = await apiCall("/api/templates");
       const data = await response.json();
       setTemplates(data.templates || []);
     } catch (error) {
-      console.error('templates load failed:', error);
+      console.error("templates load failed:", error);
     } finally {
       setLoading(false);
     }
@@ -43,22 +46,22 @@ export default function TemplateModal({ onClose, onSelectTemplate }: TemplateMod
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('name', file.name.replace('.xlsx', ''));
+      formData.append("file", file);
+      formData.append("name", file.name.replace(".xlsx", ""));
 
-      const response = await apiCall('/api/templates/upload', {
-        method: 'POST',
+      const response = await apiCall("/api/templates/upload", {
+        method: "POST",
         body: formData,
       });
 
       if (response.ok) {
         await loadTemplates();
       } else {
-        alert('upload failed');
+        alert("upload failed");
       }
     } catch (error) {
-      console.error('template upload broken:', error);
-      alert('upload failed');
+      console.error("template upload broken:", error);
+      alert("upload failed");
     } finally {
       setUploading(false);
     }
@@ -73,7 +76,9 @@ export default function TemplateModal({ onClose, onSelectTemplate }: TemplateMod
     <Modal isOpen={true} onClose={onClose} maxWidth="2xl">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Export to Excel</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Export to Excel
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded transition"
@@ -104,7 +109,7 @@ export default function TemplateModal({ onClose, onSelectTemplate }: TemplateMod
             >
               <Upload weight="regular" className="w-8 h-8 text-gray-400" />
               <span className="text-sm text-gray-600">
-                {uploading ? 'Uploading...' : 'Click to upload Excel template'}
+                {uploading ? "Uploading..." : "Click to upload Excel template"}
               </span>
               <span className="text-xs text-gray-500">.xlsx files only</span>
             </label>
@@ -116,7 +121,9 @@ export default function TemplateModal({ onClose, onSelectTemplate }: TemplateMod
             Select Template
           </label>
           {loading ? (
-            <div className="text-center py-8 text-gray-500">Loading templates...</div>
+            <div className="text-center py-8 text-gray-500">
+              Loading templates...
+            </div>
           ) : templates.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               No templates uploaded yet
@@ -127,14 +134,16 @@ export default function TemplateModal({ onClose, onSelectTemplate }: TemplateMod
                 onClick={() => setSelectedTemplate(null)}
                 className={`w-full p-3 rounded-lg border-2 transition text-left ${
                   selectedTemplate === null
-                    ? 'border-emerald-500 bg-emerald-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? "border-emerald-500 bg-emerald-50"
+                    : "border-gray-200 hover:border-gray-300"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <FileXls weight="regular" className="w-5 h-5 text-gray-500" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Default Template</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      Default Template
+                    </p>
                     <p className="text-xs text-gray-500">Use system default</p>
                   </div>
                 </div>
@@ -145,14 +154,19 @@ export default function TemplateModal({ onClose, onSelectTemplate }: TemplateMod
                   onClick={() => setSelectedTemplate(template.id)}
                   className={`w-full p-3 rounded-lg border-2 transition text-left ${
                     selectedTemplate === template.id
-                      ? 'border-emerald-500 bg-emerald-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <FileXls weight="regular" className="w-5 h-5 text-emerald-600" />
+                    <FileXls
+                      weight="regular"
+                      className="w-5 h-5 text-emerald-600"
+                    />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{template.name}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {template.name}
+                      </p>
                       <p className="text-xs text-gray-500">
                         {new Date(template.uploadedAt).toLocaleDateString()}
                       </p>

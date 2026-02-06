@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Flag, X } from '@phosphor-icons/react';
-import Modal from '@/components/Modal';
+import { useState, useEffect } from "react";
+import { Flag, X } from "@phosphor-icons/react";
+import Modal from "@/components/Modal";
 
 interface NoticePopoverProps {
   isOpen: boolean;
@@ -13,16 +13,21 @@ interface NoticePopoverProps {
 }
 
 const NOTICE_TEMPLATES = [
-  'Wrong calculations',
-  'Unreadable texts',
-  'Missing data',
-  'Incorrect format',
-  'Needs verification',
-  'Duplicate entry',
-  'Incomplete information',
+  "Wrong calculations",
+  "Unreadable texts",
+  "Missing data",
+  "Incorrect format",
+  "Needs verification",
+  "Duplicate entry",
+  "Incomplete information",
 ];
 
-export default function NoticePopover({ isOpen, onClose, onSave, currentNotice = '' }: NoticePopoverProps) {
+export default function NoticePopover({
+  isOpen,
+  onClose,
+  onSave,
+  currentNotice = "",
+}: NoticePopoverProps) {
   const [notice, setNotice] = useState(currentNotice);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -49,7 +54,7 @@ export default function NoticePopover({ isOpen, onClose, onSave, currentNotice =
   };
 
   const removeNotice = () => {
-    onSave('');
+    onSave("");
     closeWithAnimation();
   };
 

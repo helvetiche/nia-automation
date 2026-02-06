@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import type { Folder } from '@/types';
-import Modal from '@/components/Modal';
-import { Folder as FolderIcon } from '@phosphor-icons/react/dist/ssr';
+import { useState } from "react";
+import type { Folder } from "@/types";
+import Modal from "@/components/Modal";
+import { Folder as FolderIcon } from "@phosphor-icons/react/dist/ssr";
 
 interface MoveFolderModalProps {
   isOpen: boolean;
@@ -23,7 +23,7 @@ export default function MoveFolderModal({
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 
   const availableFolders = allFolders.filter(
-    (f) => f.id !== folder.id && f.parentId !== folder.id && f.level < 3
+    (f) => f.id !== folder.id && f.parentId !== folder.id && f.level < 3,
   );
 
   const moveFolder = () => {
@@ -49,8 +49,8 @@ export default function MoveFolderModal({
             onClick={() => setSelectedFolder(null)}
             className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition ${
               selectedFolder === null
-                ? 'border-emerald-800 bg-emerald-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? "border-emerald-800 bg-emerald-50"
+                : "border-gray-200 hover:border-gray-300"
             }`}
           >
             <FolderIcon weight="regular" className="w-6 h-6 text-gray-600" />
@@ -66,8 +66,8 @@ export default function MoveFolderModal({
               onClick={() => setSelectedFolder(f.id)}
               className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition ${
                 selectedFolder === f.id
-                  ? 'border-emerald-800 bg-emerald-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? "border-emerald-800 bg-emerald-50"
+                  : "border-gray-200 hover:border-gray-300"
               }`}
             >
               <FolderIcon weight="regular" className="w-6 h-6 text-gray-600" />

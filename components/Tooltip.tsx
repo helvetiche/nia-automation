@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { gsap } from 'gsap';
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { gsap } from "gsap";
 
 interface TooltipProps {
   title: string;
@@ -11,7 +11,12 @@ interface TooltipProps {
   children: React.ReactNode;
 }
 
-export default function Tooltip({ title, description, icon, children }: TooltipProps) {
+export default function Tooltip({
+  title,
+  description,
+  icon,
+  children,
+}: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -45,7 +50,7 @@ export default function Tooltip({ title, description, icon, children }: TooltipP
       gsap.fromTo(
         tooltipRef.current,
         { opacity: 0, y: 5 },
-        { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
+        { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" },
       );
     }
   }, [isVisible]);
@@ -76,7 +81,7 @@ export default function Tooltip({ title, description, icon, children }: TooltipP
             style={{
               bottom: `${window.innerHeight - position.top + 8}px`,
               left: `${position.left}px`,
-              transform: 'translateX(-50%)',
+              transform: "translateX(-50%)",
             }}
           >
             <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[200px]">
@@ -90,7 +95,7 @@ export default function Tooltip({ title, description, icon, children }: TooltipP
               <div className="w-2 h-2 bg-white border-r border-b border-gray-200 rotate-45 shadow-sm" />
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

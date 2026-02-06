@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
-import { X } from '@phosphor-icons/react/dist/ssr';
+import { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { X } from "@phosphor-icons/react/dist/ssr";
 
 interface ModalProps {
   isOpen: boolean;
@@ -11,18 +11,18 @@ interface ModalProps {
   title?: string;
   description?: string;
   icon?: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '6xl';
-  size?: 'default' | 'large';
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "6xl";
+  size?: "default" | "large";
 }
 
 const maxWidthClasses = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
-  '2xl': 'max-w-2xl',
-  '4xl': 'max-w-4xl',
-  '6xl': 'max-w-6xl',
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+  "2xl": "max-w-2xl",
+  "4xl": "max-w-4xl",
+  "6xl": "max-w-6xl",
 };
 
 export default function Modal({
@@ -32,8 +32,8 @@ export default function Modal({
   title,
   description,
   icon,
-  maxWidth = 'md',
-  size = 'default',
+  maxWidth = "md",
+  size = "default",
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -48,12 +48,12 @@ export default function Modal({
     if (!overlayRef.current || !contentRef.current) return;
 
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
 
       gsap.fromTo(
         overlayRef.current,
         { opacity: 0 },
-        { opacity: 1, duration: 0.3, ease: 'power2.out' }
+        { opacity: 1, duration: 0.3, ease: "power2.out" },
       );
 
       gsap.fromTo(
@@ -61,15 +61,15 @@ export default function Modal({
         {
           opacity: 0,
           y: 100,
-          filter: 'blur(10px)',
+          filter: "blur(10px)",
         },
         {
           opacity: 1,
           y: 0,
-          filter: 'blur(0px)',
+          filter: "blur(0px)",
           duration: 0.6,
-          ease: 'power3.out',
-        }
+          ease: "power3.out",
+        },
       );
     }
   }, [isOpen]);
@@ -79,7 +79,7 @@ export default function Modal({
 
     const overlay = overlayRef.current;
     const content = contentRef.current;
-    
+
     if (!overlay || !content) {
       onCloseRef.current();
       return;
@@ -87,9 +87,9 @@ export default function Modal({
 
     isAnimatingRef.current = true;
 
-    const timeline = gsap.timeline({    
+    const timeline = gsap.timeline({
       onComplete: () => {
-        document.body.style.overflow = '';
+        document.body.style.overflow = "";
         isAnimatingRef.current = false;
         onCloseRef.current();
       },
@@ -98,11 +98,11 @@ export default function Modal({
     timeline.to(content, {
       opacity: 0,
       y: 100,
-      filter: 'blur(10px)',
+      filter: "blur(10px)",
       duration: 0.4,
-      ease: 'power2.in',
+      ease: "power2.in",
     });
-    timeline.to(overlay, { opacity: 0, duration: 0.2 }, '-=0.2');
+    timeline.to(overlay, { opacity: 0, duration: 0.2 }, "-=0.2");
   };
 
   if (!isOpen) return null;
@@ -117,7 +117,7 @@ export default function Modal({
       <div
         ref={contentRef}
         className={`bg-white rounded-xl shadow-2xl w-full ${
-          size === 'large' ? 'max-w-6xl' : maxWidthClasses[maxWidth]
+          size === "large" ? "max-w-6xl" : maxWidthClasses[maxWidth]
         } flex flex-col max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -143,12 +143,15 @@ export default function Modal({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto" onClick={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.hasAttribute('data-modal-close')) {
-            closeModal();
-          }
-        }}>
+        <div
+          className="flex-1 overflow-y-auto"
+          onClick={(e) => {
+            const target = e.target as HTMLElement;
+            if (target.hasAttribute("data-modal-close")) {
+              closeModal();
+            }
+          }}
+        >
           {children}
         </div>
       </div>

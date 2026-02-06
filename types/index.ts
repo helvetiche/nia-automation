@@ -18,7 +18,7 @@ export interface PdfFile {
   id: string;
   name: string;
   folderId: string;
-  status: 'unscanned' | 'scanned' | 'summary-scanned';
+  status: "unscanned" | "scanned" | "summary-scanned";
   uploadedAt: number;
   scannedAt?: number;
   pageCount?: number;
@@ -35,7 +35,7 @@ export interface PdfFile {
   totalTokens?: number;
   estimatedCost?: number;
   aiModel?: string;
-  scanType?: 'total' | 'summary';
+  scanType?: "total" | "summary";
   pageNumbers?: string;
   notice?: string;
 }

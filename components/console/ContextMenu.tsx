@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useCallback } from 'react';
-import { gsap } from 'gsap';
+import { useEffect, useRef, useCallback } from "react";
+import { gsap } from "gsap";
 import {
   ArrowsClockwise,
   FolderPlus,
   FilePlus,
-} from '@phosphor-icons/react/dist/ssr';
+} from "@phosphor-icons/react/dist/ssr";
 
 interface ContextMenuProps {
   x: number;
@@ -33,9 +33,9 @@ export default function ContextMenu({
     gsap.to(menuRef.current, {
       opacity: 0,
       scale: 0.95,
-      filter: 'blur(4px)',
+      filter: "blur(4px)",
       duration: 0.15,
-      ease: 'power2.in',
+      ease: "power2.in",
       onComplete: onClose,
     });
   }, [onClose]);
@@ -48,15 +48,15 @@ export default function ContextMenu({
       {
         opacity: 0,
         scale: 0.95,
-        filter: 'blur(4px)',
+        filter: "blur(4px)",
       },
       {
         opacity: 1,
         scale: 1,
-        filter: 'blur(0px)',
+        filter: "blur(0px)",
         duration: 0.2,
-        ease: 'power2.out',
-      }
+        ease: "power2.out",
+      },
     );
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -66,17 +66,17 @@ export default function ContextMenu({
     };
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         closeMenu();
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [closeMenu]);
 
@@ -101,9 +101,9 @@ export default function ContextMenu({
         <ArrowsClockwise weight="regular" className="w-4 h-4 text-gray-600" />
         Refresh
       </button>
-      
+
       <div className="h-px bg-gray-200 my-1" />
-      
+
       <button
         onClick={() => handleAction(onNewFolder)}
         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition"
@@ -111,7 +111,7 @@ export default function ContextMenu({
         <FolderPlus weight="regular" className="w-4 h-4 text-emerald-800" />
         New Folder
       </button>
-      
+
       <button
         onClick={() => handleAction(onUploadPdf)}
         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition"

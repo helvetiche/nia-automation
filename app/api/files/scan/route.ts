@@ -1,58 +1,68 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { adminDb, adminStorage } from '@/lib/firebase/adminConfig';
-import { verifyOperator } from '@/lib/auth/middleware';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { Folder, PdfFile } from '@/types';
+import { NextRequest, NextResponse } from "next/server";
+import { adminDb, adminStorage } from "@/lib/firebase/adminConfig";
+import { verifyOperator } from "@/lib/auth/middleware";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { Folder, PdfFile } from "@/types";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(request: NextRequest) {
-  console.log('=== SCAN REQUEST STARTED ===');
+  console.log("=== SCAN REQUEST STARTED ===");
   try {
-    const token = request.headers.get('authorization')?.split('Bearer ')[1];
+    const token = request.headers.get("authorization")?.split("Bearer ")[1];
     if (!token) {
-      console.log('ERROR: No authorization token');
-      return NextResponse.json({ error: 'not authorized' }, { status: 401 });
+      console.log("ERROR: No authorization token");
+      return NextResponse.json({ error: "not authorized" }, { status: 401 });
     }
 
     const decodedToken = await verifyOperator(token);
     const userId = decodedToken.uid;
-    console.log('User ID:', userId);
+    console.log("User ID:", userId);
 
-    const { pdfId, scanType = 'total', pageNumbers } = await request.json();
-    const calculationMethod = 'quick-final';
-    const aiModel = 'gemini-2.5-flash-lite';
-    
-    console.log('PDF ID:', pdfId);
-    console.log('Scan Type:', scanType);
-    console.log('Page Numbers:', pageNumbers);
-    console.log('Calculation Method:', calculationMethod);
-    console.log('AI Model:', aiModel);
+    const {
+      pdfId,
+      scanType = "summary",
+      pageNumbers,
+      displayName,
+    } = await request.json();
+    const calculationMethod = "quick-final";
+    const aiModel = "gemini-2.5-flash-lite";
+
+    console.log("PDF ID:", pdfId);
+    console.log("Scan Type:", scanType);
+    console.log("Page Numbers:", pageNumbers);
+    console.log("Display Name:", displayName);
+    console.log("Calculation Method:", calculationMethod);
+    console.log("AI Model:", aiModel);
 
     if (!pdfId) {
-      console.log('ERROR: No PDF ID provided');
-      return NextResponse.json({ error: 'pdf id required' }, { status: 400 });
+      console.log("ERROR: No PDF ID provided");
+      return NextResponse.json({ error: "pdf id required" }, { status: 400 });
     }
 
-    console.log('Fetching PDF document from Firestore...');
-    const pdfDoc = await adminDb().collection('pdfs').doc(pdfId).get();
+    console.log("Fetching PDF document from Firestore...");
+    const pdfDoc = await adminDb().collection("pdfs").doc(pdfId).get();
     if (!pdfDoc.exists) {
-      console.log('ERROR: PDF not found in Firestore');
-      return NextResponse.json({ error: 'pdf not found' }, { status: 404 });
+      console.log("ERROR: PDF not found in Firestore");
+      return NextResponse.json({ error: "pdf not found" }, { status: 404 });
     }
 
     const pdfData = pdfDoc.data();
-    console.log('PDF Data:', { name: pdfData?.name, storagePath: pdfData?.storagePath, status: pdfData?.status });
-    
+    console.log("PDF Data:", {
+      name: pdfData?.name,
+      storagePath: pdfData?.storagePath,
+      status: pdfData?.status,
+    });
+
     if (pdfData?.userId !== userId) {
-      console.log('ERROR: User not authorized for this PDF');
-      return NextResponse.json({ error: 'not authorized' }, { status: 403 });
+      console.log("ERROR: User not authorized for this PDF");
+      return NextResponse.json({ error: "not authorized" }, { status: 403 });
     }
 
-    if (pdfData?.status === 'scanned') {
-      console.log('Resetting previously scanned document...');
-      await adminDb().collection('pdfs').doc(pdfId).update({
-        status: 'unscanned',
+    if (pdfData?.status === "scanned") {
+      console.log("Resetting previously scanned document...");
+      await adminDb().collection("pdfs").doc(pdfId).update({
+        status: "unscanned",
         scannedAt: null,
         pageCount: null,
         extractedData: null,
@@ -61,68 +71,100 @@ export async function POST(request: NextRequest) {
         totalPlantedArea: null,
         confidence: null,
       });
-      console.log('Document reset complete');
+      console.log("Document reset complete");
     }
 
-    console.log('Downloading PDF from Firebase Storage...');
+    console.log("Downloading PDF from Firebase Storage...");
     const bucket = adminStorage().bucket();
     const file = bucket.file(pdfData.storagePath);
-    
+
     const [fileBuffer] = await file.download();
-    console.log('PDF downloaded, size:', fileBuffer.length, 'bytes');
-    
-    const base64Pdf = fileBuffer.toString('base64');
-    console.log('PDF converted to base64, length:', base64Pdf.length);
-    
-    console.log('Initializing model:', aiModel);
+    console.log("PDF downloaded, size:", fileBuffer.length, "bytes");
+
+    const base64Pdf = fileBuffer.toString("base64");
+    console.log("PDF converted to base64, length:", base64Pdf.length);
+
+    console.log("Initializing model:", aiModel);
     const model = genAI.getGenerativeModel({ model: aiModel });
-    
+
     const modelPricing = {
-      'gemini-2.5-flash-lite': { input: 0.15, output: 1.25 },
+      "gemini-2.5-flash-lite": { input: 0.15, output: 1.25 },
     };
-    
-    const pricing = modelPricing['gemini-2.5-flash-lite'];
+
+    const pricing = modelPricing["gemini-2.5-flash-lite"];
     const inputPricePerMillion = pricing.input;
     const outputPricePerMillion = pricing.output;
-    
+
     let prompt: string;
-    
-    if (scanType === 'summary') {
-      prompt = `You are analyzing a PDF document to extract irrigation association data from specific pages.
+
+    if (scanType === "summary") {
+      prompt = `You are analyzing a PDF document to extract ALL irrigation association/BSM data from specific pages.
 
 CRITICAL INSTRUCTIONS:
 1. ONLY process the specified pages: ${pageNumbers}
-2. Look for tables containing "Irrigation Association" names and "Total Area" values
-3. Extract ONLY these two pieces of information for each association
+2. Extract EVERY SINGLE row from the table - do not skip any rows
+3. Look for tables with BSM names and Area values
+4. Extract ALL rows until you reach a "Total" row (but don't include the Total row itself)
 
-WHAT TO FIND:
-- Look for any table or list containing irrigation association names
-- Find the corresponding "Total Area" values for each association
-- Ignore all other data (irrigated area, planted area, etc.)
+WHAT YOU'RE LOOKING FOR:
+The document contains a table with this structure:
+- Column 1: BSM (Barangay Service Multipurpose) - these are the association names
+- Column 2: Area - this is the total area value you need
+- Other columns: Irrigated Area, Planted Area, etc. (ignore these)
 
-EXAMPLE OF WHAT YOU'RE LOOKING FOR:
-If you see a table like:
-| Irrigation Association | Total Area |
-| BSJB IA               | 190.72     |
-| BULCOT IA             | 75.10      |
-| LAKAS MAGSASAKA IA    | 219.08     |
+IMPORTANT: BSM names can be:
+- Full names like "Malabon", "Licuan", "Bagong Silang"
+- Abbreviated names like "Mal.", "Lic.", "BC", "Bag.", "CM", "Mas"
+- Short codes like "BSJB", "BULCOT"
+- Any text in the first column that is NOT "Total" or a header
 
-You should extract each association with its total area.
+EXAMPLE TABLE YOU MIGHT SEE:
+| BSM  | Area   | Irrigated Area | Planted Area |
+| Mal. | 70.83  | 62.80         | 62.80        |
+| Lic. | 69.40  | 62.90         | 62.90        |
+| BC   | 99.97  | 90.19         | 90.19        |
+| Bag. | 78.61  | 72.10         | 72.10        |
+| CM   | 92.83  | 90.52         | 90.52        |
+| Mas  | 42.93  | 41.92         | 41.92        |
+| Total| 452.57 | 420.43        | 420.43       |
+
+YOU MUST EXTRACT:
+{"name": "Mal.", "totalArea": 70.83}
+{"name": "Lic.", "totalArea": 69.40}
+{"name": "BC", "totalArea": 99.97}
+{"name": "Bag.", "totalArea": 78.61}
+{"name": "CM", "totalArea": 92.83}
+{"name": "Mas", "totalArea": 42.93}
+
+DO NOT EXTRACT the Total row - only the individual BSM rows.
+
+EXTRACTION RULES:
+1. Go through the table row by row
+2. For each row, take the value from the FIRST column (BSM name) and SECOND column (Area)
+3. Skip rows where the first column says "Total", "Subtotal", "Grand Total", or is a header
+4. Extract EVERY other row - if there are 6 BSMs, return 6 items; if 20 BSMs, return 20 items
+5. Stop when you reach the Total row
 
 REQUIRED JSON FORMAT:
 {
   "confidence": 95,
   "associations": [
-    {"name": "BSJB IA", "totalArea": 190.72},
-    {"name": "BULCOT IA", "totalArea": 75.10},
-    {"name": "LAKAS MAGSASAKA IA", "totalArea": 219.08}
+    {"name": "Mal.", "totalArea": 70.83},
+    {"name": "Lic.", "totalArea": 69.40},
+    {"name": "BC", "totalArea": 99.97},
+    {"name": "Bag.", "totalArea": 78.61},
+    {"name": "CM", "totalArea": 92.83},
+    {"name": "Mas", "totalArea": 42.93}
   ]
 }
 
-IMPORTANT: 
-- Only extract associations that have both name and total area
-- Return empty array if no associations found
-- Confidence should reflect how certain you are about the extraction`;
+CONFIDENCE SCORING:
+- 95-100: Clear table structure, all values extracted successfully
+- 85-94: Table found but some values might be unclear
+- 70-84: Data found but format was unusual
+- Below 70: Very uncertain about the extraction
+
+REMEMBER: Extract ALL rows from the table, not just one!`;
     } else {
       prompt = `You are analyzing a PDF document to extract ONLY the final totals from the LAST PAGE.
 
@@ -168,93 +210,113 @@ REQUIRED JSON FORMAT:
 IMPORTANT: If you cannot find a Total row, return empty values but still provide the structure.`;
     }
 
-    console.log('Sending request to Gemini API...');
-    console.log('Prompt length:', prompt.length);
-    console.log('PDF base64 length:', base64Pdf.length);
-    console.log('Calculation method:', calculationMethod);
-    
+    console.log("Sending request to Gemini API...");
+    console.log("Prompt length:", prompt.length);
+    console.log("PDF base64 length:", base64Pdf.length);
+    console.log("Calculation method:", calculationMethod);
+
     const startTime = Date.now();
     const result = await model.generateContent([
       {
         inlineData: {
-          mimeType: 'application/pdf',
+          mimeType: "application/pdf",
           data: base64Pdf,
         },
       },
       { text: prompt },
     ]);
-    
+
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`Gemini API responded in ${elapsedTime}s`);
 
     const response = result.response.text();
     const usageMetadata = result.response.usageMetadata;
-    
+
     const inputTokens = usageMetadata?.promptTokenCount || 0;
     const outputTokens = usageMetadata?.candidatesTokenCount || 0;
     const totalTokens = usageMetadata?.totalTokenCount || 0;
-    
+
     const inputCost = (inputTokens / 1000000) * inputPricePerMillion;
     const outputCost = (outputTokens / 1000000) * outputPricePerMillion;
     const estimatedCost = inputCost + outputCost;
-    
-    console.log('Token Usage:');
-    console.log('- Input tokens:', inputTokens);
-    console.log('- Output tokens:', outputTokens);
-    console.log('- Total tokens:', totalTokens);
-    console.log('- Estimated cost: $' + estimatedCost.toFixed(6));
-    
-    console.log('Gemini raw response length:', response.length);
-    console.log('Gemini raw response preview:', response.substring(0, 1000));
-    
+
+    console.log("Token Usage:");
+    console.log("- Input tokens:", inputTokens);
+    console.log("- Output tokens:", outputTokens);
+    console.log("- Total tokens:", totalTokens);
+    console.log("- Estimated cost: $" + estimatedCost.toFixed(6));
+
+    console.log("Gemini raw response length:", response.length);
+    console.log("Gemini raw response preview:", response.substring(0, 1000));
+
     let extractedData;
     try {
-      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      console.log('Cleaned response:', cleanedResponse.substring(0, 500));
-      
+      const cleanedResponse = response
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
+      console.log("Cleaned response:", cleanedResponse.substring(0, 500));
+
       const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         extractedData = JSON.parse(jsonMatch[0]);
-        console.log('Successfully parsed JSON');
-        console.log('Full extracted data:', JSON.stringify(extractedData, null, 2));
-        console.log('Confidence:', extractedData.confidence);
-        
-        if (scanType === 'summary') {
-          console.log('Number of associations:', extractedData.associations?.length || 0);
+        console.log("Successfully parsed JSON");
+        console.log(
+          "Full extracted data:",
+          JSON.stringify(extractedData, null, 2),
+        );
+        console.log("Confidence:", extractedData.confidence);
+
+        if (scanType === "summary") {
+          console.log(
+            "Number of associations:",
+            extractedData.associations?.length || 0,
+          );
         } else {
-          console.log('Number of pages:', extractedData.pages?.length || 0);
+          console.log("Number of pages:", extractedData.pages?.length || 0);
         }
       } else {
-        console.error('ERROR: No JSON found in response');
-        console.error('Full cleaned response:', cleanedResponse);
-        throw new Error('No JSON found in response');
+        console.error("ERROR: No JSON found in response");
+        console.error("Full cleaned response:", cleanedResponse);
+        throw new Error("No JSON found in response");
       }
     } catch (e) {
-      console.error('JSON parse error:', e);
-      console.error('Response was:', response);
-      return NextResponse.json({ error: 'AI response parsing failed' }, { status: 500 });
+      console.error("JSON parse error:", e);
+      console.error("Response was:", response);
+      return NextResponse.json(
+        { error: "AI response parsing failed" },
+        { status: 500 },
+      );
     }
 
     const batch = adminDb().batch();
-    
+
     let pageCount = 0;
     let totalArea = 0;
     let totalIrrigatedArea = 0;
     let totalPlantedArea = 0;
-    
-    if (scanType === 'summary') {
+
+    if (scanType === "summary") {
       const associations = extractedData.associations || [];
-      
+
       if (!Array.isArray(associations)) {
-        console.error('No associations in extracted data:', extractedData);
-        return NextResponse.json({ error: 'no associations extracted' }, { status: 500 });
+        console.error("No associations in extracted data:", extractedData);
+        return NextResponse.json(
+          { error: "no associations extracted" },
+          { status: 500 },
+        );
       }
-      
-      console.log(`Processing ${associations.length} associations for PDF ${pdfId}`);
-      
+
+      console.log(
+        `Processing ${associations.length} associations for PDF ${pdfId}`,
+      );
+
       const totalTokensUsed = totalTokens;
-      const usagePerAssociation = associations.length > 0 ? Math.floor(totalTokensUsed / associations.length) : 0;
-      
+      const usagePerAssociation =
+        associations.length > 0
+          ? Math.floor(totalTokensUsed / associations.length)
+          : 0;
+
       const summaryData = associations.map((assoc, index) => ({
         id: `${pdfId}-${index}`,
         name: assoc.name || `Association ${index + 1}`,
@@ -264,10 +326,12 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
       }));
 
       const confidenceScore = extractedData.confidence || 0;
-      console.log(`Summary scan results - ${associations.length} associations, confidence: ${confidenceScore}`);
+      console.log(
+        `Summary scan results - ${associations.length} associations, confidence: ${confidenceScore}`,
+      );
 
-      batch.update(adminDb().collection('pdfs').doc(pdfId), {
-        status: 'summary-scanned',
+      const updateData: Record<string, unknown> = {
+        status: "summary-scanned",
         scannedAt: Date.now(),
         summaryData,
         confidence: confidenceScore,
@@ -276,95 +340,142 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
         totalTokens,
         estimatedCost,
         aiModel: aiModel,
-        scanType: 'summary',
-        pageNumbers: pageNumbers || '',
-      });
+        scanType: "summary",
+        pageNumbers: pageNumbers || "",
+      };
+
+      if (displayName) {
+        updateData.name = displayName;
+      }
+
+      batch.update(adminDb().collection("pdfs").doc(pdfId), updateData);
     } else {
       const pages = extractedData.pages || [];
-      
+
       if (!Array.isArray(pages) || pages.length === 0) {
-        console.error('No pages in extracted data:', extractedData);
-        return NextResponse.json({ error: 'no pages extracted' }, { status: 500 });
+        console.error("No pages in extracted data:", extractedData);
+        return NextResponse.json(
+          { error: "no pages extracted" },
+          { status: 500 },
+        );
       }
-      
+
       pageCount = pages.length;
       console.log(`Storing ${pageCount} pages for PDF ${pdfId}`);
 
-      const extractedPages = pages.map(pageData => ({
+      const extractedPages = pages.map((pageData) => ({
         pageNumber: pageData.pageNumber,
         tableData: Array.isArray(pageData.tableData) ? pageData.tableData : [],
-        summary: pageData.summary || '',
+        summary: pageData.summary || "",
       }));
 
-      console.log('Starting calculation with last page scan method');
-      console.log('Total extracted pages:', extractedPages.length);
-      
+      console.log("Starting calculation with last page scan method");
+      console.log("Total extracted pages:", extractedPages.length);
+
       const lastPage = extractedPages[extractedPages.length - 1];
-      console.log('Last page number:', lastPage?.pageNumber);
-      console.log('Last page has', lastPage?.tableData?.length || 0, 'rows');
-      console.log('Last page table data:', JSON.stringify(lastPage?.tableData, null, 2));
-      
+      console.log("Last page number:", lastPage?.pageNumber);
+      console.log("Last page has", lastPage?.tableData?.length || 0, "rows");
+      console.log(
+        "Last page table data:",
+        JSON.stringify(lastPage?.tableData, null, 2),
+      );
+
       if (lastPage && lastPage.tableData) {
-        console.log('Processing', lastPage.tableData.length, 'rows from last page');
-        
+        console.log(
+          "Processing",
+          lastPage.tableData.length,
+          "rows from last page",
+        );
+
         for (let i = 0; i < lastPage.tableData.length; i++) {
           const row = lastPage.tableData[i];
           console.log(`\n--- Processing Row ${i + 1} ---`);
-          console.log('Row data:', JSON.stringify(row, null, 2));
-          
-          const rowValues = Object.values(row).map(v => String(v).toLowerCase());
-          console.log('Row values (lowercase):', rowValues);
-          
-          const hasTotal = rowValues.some(v => {
+          console.log("Row data:", JSON.stringify(row, null, 2));
+
+          const rowValues = Object.values(row).map((v) =>
+            String(v).toLowerCase(),
+          );
+          console.log("Row values (lowercase):", rowValues);
+
+          const hasTotal = rowValues.some((v) => {
             const cleanValue = v.trim();
-            const matches = cleanValue === 'total' || 
-                           cleanValue === 'totals' ||
-                           cleanValue.startsWith('total ') ||
-                           cleanValue.endsWith(' total');
+            const matches =
+              cleanValue === "total" ||
+              cleanValue === "totals" ||
+              cleanValue.startsWith("total ") ||
+              cleanValue.endsWith(" total");
             console.log(`Checking "${cleanValue}" for total: ${matches}`);
             return matches;
           });
-          
-          const hasSubtotal = rowValues.some(v => {
+
+          const hasSubtotal = rowValues.some((v) => {
             const cleanValue = v.trim();
-            const matches = cleanValue.includes('subtotal') || 
-                           cleanValue.includes('sub total') ||
-                           cleanValue.includes('sub-total') ||
-                           cleanValue.includes('grand total') ||
-                           cleanValue.includes('final total');
+            const matches =
+              cleanValue.includes("subtotal") ||
+              cleanValue.includes("sub total") ||
+              cleanValue.includes("sub-total") ||
+              cleanValue.includes("grand total") ||
+              cleanValue.includes("final total");
             console.log(`Checking "${cleanValue}" for subtotal: ${matches}`);
             return matches;
           });
-          
+
           const isTotalRow = hasTotal && !hasSubtotal;
-          
-          console.log('Has total:', hasTotal, 'Has subtotal:', hasSubtotal, 'Is total row:', isTotalRow);
-          
+
+          console.log(
+            "Has total:",
+            hasTotal,
+            "Has subtotal:",
+            hasSubtotal,
+            "Is total row:",
+            isTotalRow,
+          );
+
           if (isTotalRow) {
-            console.log('✅ Found valid Total row!');
-            console.log('Row keys:', Object.keys(row));
-            
+            console.log("✅ Found valid Total row!");
+            console.log("Row keys:", Object.keys(row));
+
             const areaKeys = [
-              'area', 'Area', 'AREA', 
-              'total area', 'Total Area', 'TOTAL AREA',
-              'total_area', 'Total_Area', 'TOTAL_AREA'
+              "area",
+              "Area",
+              "AREA",
+              "total area",
+              "Total Area",
+              "TOTAL AREA",
+              "total_area",
+              "Total_Area",
+              "TOTAL_AREA",
             ];
             const irrigatedKeys = [
-              'irrigated', 'Irrigated', 'IRRIGATED', 
-              'irrigated area', 'Irrigated Area', 'IRRIGATED AREA',
-              'irrigated_area', 'Irrigated_Area', 'IRRIGATED_AREA'
+              "irrigated",
+              "Irrigated",
+              "IRRIGATED",
+              "irrigated area",
+              "Irrigated Area",
+              "IRRIGATED AREA",
+              "irrigated_area",
+              "Irrigated_Area",
+              "IRRIGATED_AREA",
             ];
             const plantedKeys = [
-              'planted', 'Planted', 'PLANTED', 
-              'planted area', 'Planted Area', 'PLANTED AREA',
-              'planted_area', 'Planted_Area', 'PLANTED_AREA'
+              "planted",
+              "Planted",
+              "PLANTED",
+              "planted area",
+              "Planted Area",
+              "PLANTED AREA",
+              "planted_area",
+              "Planted_Area",
+              "PLANTED_AREA",
             ];
 
-            console.log('Searching for area values...');
+            console.log("Searching for area values...");
             for (const key of areaKeys) {
               if (key in row && row[key]) {
                 console.log(`Found area key "${key}" with value:`, row[key]);
-                const value = parseFloat(String(row[key]).replace(/[^0-9.-]/g, ''));
+                const value = parseFloat(
+                  String(row[key]).replace(/[^0-9.-]/g, ""),
+                );
                 console.log(`Parsed area value: ${value}`);
                 if (!isNaN(value)) {
                   console.log(`✅ Set Total Area: ${value} from key: ${key}`);
@@ -374,28 +485,39 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
               }
             }
 
-            console.log('Searching for irrigated values...');
+            console.log("Searching for irrigated values...");
             for (const key of irrigatedKeys) {
               if (key in row && row[key]) {
-                console.log(`Found irrigated key "${key}" with value:`, row[key]);
-                const value = parseFloat(String(row[key]).replace(/[^0-9.-]/g, ''));
+                console.log(
+                  `Found irrigated key "${key}" with value:`,
+                  row[key],
+                );
+                const value = parseFloat(
+                  String(row[key]).replace(/[^0-9.-]/g, ""),
+                );
                 console.log(`Parsed irrigated value: ${value}`);
                 if (!isNaN(value)) {
-                  console.log(`✅ Set Total Irrigated: ${value} from key: ${key}`);
+                  console.log(
+                    `✅ Set Total Irrigated: ${value} from key: ${key}`,
+                  );
                   totalIrrigatedArea = value;
                   break;
                 }
               }
             }
 
-            console.log('Searching for planted values...');
+            console.log("Searching for planted values...");
             for (const key of plantedKeys) {
               if (key in row && row[key]) {
                 console.log(`Found planted key "${key}" with value:`, row[key]);
-                const value = parseFloat(String(row[key]).replace(/[^0-9.-]/g, ''));
+                const value = parseFloat(
+                  String(row[key]).replace(/[^0-9.-]/g, ""),
+                );
                 console.log(`Parsed planted value: ${value}`);
                 if (!isNaN(value)) {
-                  console.log(`✅ Set Total Planted: ${value} from key: ${key}`);
+                  console.log(
+                    `✅ Set Total Planted: ${value} from key: ${key}`,
+                  );
                   totalPlantedArea = value;
                   break;
                 }
@@ -403,35 +525,76 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
             }
             break;
           } else if (hasSubtotal) {
-            console.log('❌ Skipping subtotal row:', rowValues);
+            console.log("❌ Skipping subtotal row:", rowValues);
           } else {
-            console.log('❌ Not a total row');
+            console.log("❌ Not a total row");
           }
         }
       } else {
-        console.log('❌ No last page or table data found');
+        console.log("❌ No last page or table data found");
       }
-      console.log('Last page scan results - Area:', totalArea, 'Irrigated:', totalIrrigatedArea, 'Planted:', totalPlantedArea);
+      console.log(
+        "Last page scan results - Area:",
+        totalArea,
+        "Irrigated:",
+        totalIrrigatedArea,
+        "Planted:",
+        totalPlantedArea,
+      );
 
-      if (totalArea === 0 && totalIrrigatedArea === 0 && totalPlantedArea === 0) {
-        console.log('⚠️  No totals found with strict matching, trying fallback approach...');
-        
+      if (
+        totalArea === 0 &&
+        totalIrrigatedArea === 0 &&
+        totalPlantedArea === 0
+      ) {
+        console.log(
+          "⚠️  No totals found with strict matching, trying fallback approach...",
+        );
+
         if (lastPage && lastPage.tableData) {
           for (let i = 0; i < lastPage.tableData.length; i++) {
             const row = lastPage.tableData[i];
-            console.log(`Fallback: Checking row ${i + 1}:`, JSON.stringify(row, null, 2));
-            
-            const areaKeys = ['area', 'Area', 'AREA', 'total area', 'Total Area', 'TOTAL AREA'];
-            const irrigatedKeys = ['irrigated', 'Irrigated', 'IRRIGATED', 'irrigated area', 'Irrigated Area', 'IRRIGATED AREA'];
-            const plantedKeys = ['planted', 'Planted', 'PLANTED', 'planted area', 'Planted Area', 'PLANTED AREA'];
+            console.log(
+              `Fallback: Checking row ${i + 1}:`,
+              JSON.stringify(row, null, 2),
+            );
+
+            const areaKeys = [
+              "area",
+              "Area",
+              "AREA",
+              "total area",
+              "Total Area",
+              "TOTAL AREA",
+            ];
+            const irrigatedKeys = [
+              "irrigated",
+              "Irrigated",
+              "IRRIGATED",
+              "irrigated area",
+              "Irrigated Area",
+              "IRRIGATED AREA",
+            ];
+            const plantedKeys = [
+              "planted",
+              "Planted",
+              "PLANTED",
+              "planted area",
+              "Planted Area",
+              "PLANTED AREA",
+            ];
 
             let foundAnyValue = false;
-            
+
             for (const key of areaKeys) {
               if (key in row && row[key] && totalArea === 0) {
-                const value = parseFloat(String(row[key]).replace(/[^0-9.-]/g, ''));
+                const value = parseFloat(
+                  String(row[key]).replace(/[^0-9.-]/g, ""),
+                );
                 if (!isNaN(value) && value > 0) {
-                  console.log(`Fallback: Found Area: ${value} from key: ${key}`);
+                  console.log(
+                    `Fallback: Found Area: ${value} from key: ${key}`,
+                  );
                   totalArea = value;
                   foundAnyValue = true;
                 }
@@ -440,9 +603,13 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
 
             for (const key of irrigatedKeys) {
               if (key in row && row[key] && totalIrrigatedArea === 0) {
-                const value = parseFloat(String(row[key]).replace(/[^0-9.-]/g, ''));
+                const value = parseFloat(
+                  String(row[key]).replace(/[^0-9.-]/g, ""),
+                );
                 if (!isNaN(value) && value > 0) {
-                  console.log(`Fallback: Found Irrigated: ${value} from key: ${key}`);
+                  console.log(
+                    `Fallback: Found Irrigated: ${value} from key: ${key}`,
+                  );
                   totalIrrigatedArea = value;
                   foundAnyValue = true;
                 }
@@ -451,40 +618,46 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
 
             for (const key of plantedKeys) {
               if (key in row && row[key] && totalPlantedArea === 0) {
-                const value = parseFloat(String(row[key]).replace(/[^0-9.-]/g, ''));
+                const value = parseFloat(
+                  String(row[key]).replace(/[^0-9.-]/g, ""),
+                );
                 if (!isNaN(value) && value > 0) {
-                  console.log(`Fallback: Found Planted: ${value} from key: ${key}`);
+                  console.log(
+                    `Fallback: Found Planted: ${value} from key: ${key}`,
+                  );
                   totalPlantedArea = value;
                   foundAnyValue = true;
                 }
               }
             }
-            
+
             if (foundAnyValue) {
-              console.log('✅ Fallback extraction successful');
+              console.log("✅ Fallback extraction successful");
               break;
             }
           }
         }
       }
 
-      console.log(`Calculated totals - Area: ${totalArea}, Irrigated: ${totalIrrigatedArea}, Planted: ${totalPlantedArea}`);
+      console.log(
+        `Calculated totals - Area: ${totalArea}, Irrigated: ${totalIrrigatedArea}, Planted: ${totalPlantedArea}`,
+      );
 
       const confidenceScore = extractedData.confidence || 0;
       console.log(`Confidence score: ${confidenceScore}`);
 
-      console.log('=== FINAL RESULTS SUMMARY ===');
-      console.log('Total Area:', totalArea);
-      console.log('Total Irrigated Area:', totalIrrigatedArea);
-      console.log('Total Planted Area:', totalPlantedArea);
-      console.log('Confidence Score:', confidenceScore);
-      console.log('Page Count:', pageCount);
-      console.log('AI Model:', aiModel);
-      console.log('Estimated Cost:', estimatedCost);
-      console.log('==============================');
+      console.log("=== FINAL RESULTS SUMMARY ===");
+      console.log("Total Area:", totalArea);
+      console.log("Total Irrigated Area:", totalIrrigatedArea);
+      console.log("Total Planted Area:", totalPlantedArea);
+      console.log("Confidence Score:", confidenceScore);
+      console.log("Page Count:", pageCount);
+      console.log("AI Model:", aiModel);
+      console.log("Estimated Cost:", estimatedCost);
+      console.log("==============================");
 
-      batch.update(adminDb().collection('pdfs').doc(pdfId), {
-        status: 'scanned',
+      batch.update(adminDb().collection("pdfs").doc(pdfId), {
+        status: "scanned",
         scannedAt: Date.now(),
         pageCount: pageCount,
         extractedData: extractedPages,
@@ -497,19 +670,19 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
         totalTokens,
         estimatedCost,
         aiModel: aiModel,
-        scanType: 'total',
+        scanType: "total",
       });
     }
 
-    console.log('Committing batch update to Firestore...');
+    console.log("Committing batch update to Firestore...");
     await batch.commit();
-    console.log('Batch committed successfully');
+    console.log("Batch committed successfully");
 
-    console.log('Updating usage metrics...');
-    const metricsRef = adminDb().collection('usage').doc('metrics');
+    console.log("Updating usage metrics...");
+    const metricsRef = adminDb().collection("usage").doc("metrics");
     await adminDb().runTransaction(async (transaction) => {
       const metricsDoc = await transaction.get(metricsRef);
-      
+
       if (!metricsDoc.exists) {
         transaction.set(metricsRef, {
           inputTokens: inputTokens,
@@ -527,20 +700,21 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
         });
       }
     });
-    console.log('Usage metrics updated');
+    console.log("Usage metrics updated");
 
-    console.log('Updating folder totals...');
+    console.log("Updating folder totals...");
     try {
-      const { calculateFolderTotals } = await import('@/lib/folderCalculations');
-      
+      const { calculateFolderTotals } =
+        await import("@/lib/folderCalculations");
+
       const foldersSnapshot = await adminDb()
-        .collection('folders')
-        .where('userId', '==', userId)
+        .collection("folders")
+        .where("userId", "==", userId)
         .get();
 
       const filesSnapshot = await adminDb()
-        .collection('pdfs')
-        .where('userId', '==', userId)
+        .collection("pdfs")
+        .where("userId", "==", userId)
         .get();
 
       const allFolders = foldersSnapshot.docs.map((doc) => ({
@@ -554,11 +728,11 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
       })) as PdfFile[];
 
       const folderBatch = adminDb().batch();
-      
+
       for (const folder of allFolders) {
         const totals = calculateFolderTotals(folder.id, allFolders, allFiles);
-        
-        folderBatch.update(adminDb().collection('folders').doc(folder.id), {
+
+        folderBatch.update(adminDb().collection("folders").doc(folder.id), {
           totalArea: totals.totalArea || 0,
           totalIrrigatedArea: totals.totalIrrigatedArea || 0,
           totalPlantedArea: totals.totalPlantedArea || 0,
@@ -566,33 +740,35 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
       }
 
       await folderBatch.commit();
-      console.log('Folder totals updated');
+      console.log("Folder totals updated");
     } catch (folderError) {
-      console.error('Folder update error (non-critical):', folderError);
+      console.error("Folder update error (non-critical):", folderError);
     }
 
-    console.log('=== SCAN COMPLETED SUCCESSFULLY ===');
-    if (scanType === 'summary') {
-      console.log('Summary scan completed');
-      console.log('Associations found:', extractedData.associations?.length || 0);
+    console.log("=== SCAN COMPLETED SUCCESSFULLY ===");
+    if (scanType === "summary") {
+      console.log("Summary scan completed");
+      console.log(
+        "Associations found:",
+        extractedData.associations?.length || 0,
+      );
     } else {
-      console.log('Page count:', pageCount);
-      console.log('Total Area:', totalArea);
-      console.log('Total Irrigated:', totalIrrigatedArea);
-      console.log('Total Planted:', totalPlantedArea);
+      console.log("Page count:", pageCount);
+      console.log("Total Area:", totalArea);
+      console.log("Total Irrigated:", totalIrrigatedArea);
+      console.log("Total Planted:", totalPlantedArea);
     }
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    return NextResponse.json({
+      success: true,
       scanType,
-      ...(scanType === 'summary' 
+      ...(scanType === "summary"
         ? { associationsCount: extractedData.associations?.length || 0 }
-        : { pageCount: pageCount }
-      )
+        : { pageCount: pageCount }),
     });
   } catch (error) {
-    console.error('=== SCAN ERROR ===');
-    console.error('Error details:', error);
-    return NextResponse.json({ error: 'scan failed' }, { status: 500 });
+    console.error("=== SCAN ERROR ===");
+    console.error("Error details:", error);
+    return NextResponse.json({ error: "scan failed" }, { status: 500 });
   }
 }
