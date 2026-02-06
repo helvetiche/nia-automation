@@ -34,8 +34,6 @@ export async function GET(request: NextRequest) {
     const title = request.nextUrl.searchParams.get("title") || "LIST OF IRRIGATED AND PLANTED AREA (LIPA)";
     const season = request.nextUrl.searchParams.get("season") || "DRY CROPPING SEASON 2025";
 
-    console.log("LIPA API - Received params:", { title, season, templateId });
-
     if (!folderId && !folderIds && !fileIds) {
       return NextResponse.json(
         { error: "folderId, folderIds, or fileIds required" },
@@ -166,8 +164,6 @@ export async function GET(request: NextRequest) {
       season: templateData?.season || season,
       divisions: allDivisions,
     };
-
-    console.log("LIPA API - Final report data:", { title: reportData.title, season: reportData.season });
 
     const buffer = await generateLIPAReport(reportData);
 

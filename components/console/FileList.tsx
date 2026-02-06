@@ -33,6 +33,10 @@ import {
   ArrowsClockwise,
   CurrencyDollar,
   Flag,
+  CaretLeft,
+  PencilSimple,
+  Check,
+  X as XIcon,
 } from "@phosphor-icons/react";
 import type { IconWeight } from "@phosphor-icons/react";
 import { apiCall } from "@/lib/api/client";
@@ -178,6 +182,16 @@ export default function FileList({
     currentNotice?: string;
     anchorRef: React.RefObject<HTMLElement | null>;
   } | null>(null);
+  const [folderPage, setFolderPage] = useState(1);
+  const [summaryPage, setSummaryPage] = useState(1);
+  const [regularPage, setRegularPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+  const [editingArea, setEditingArea] = useState<{
+    fileId: string;
+    associationId?: string;
+    currentValue: number;
+  } | null>(null);
+  const [editValue, setEditValue] = useState("");
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -536,6 +550,52 @@ export default function FileList({
     }
   };
 
+  const startEditingArea = (
+    fileId: string,
+    currentValue: number,
+    associationId?: string,
+  ) => {
+    setEditingArea({ fileId, associationId, currentValue });
+    setEditValue(currentValue.toFixed(2));
+  };
+
+  const cancelEditingArea = () => {
+    setEditingArea(null);
+    setEditValue("");
+  };
+
+  const saveAreaEdit = async () => {
+    if (!editingArea) return;
+
+    const newValue = parseFloat(editValue);
+    if (isNaN(newValue) || newValue < 0) {
+      showToast("error", "Invalid Value", "Please enter a valid number");
+      return;
+    }
+
+    try {
+      const response = await apiCall(`/api/files/${editingArea.fileId}/area`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          newArea: newValue,
+          associationId: editingArea.associationId,
+        }),
+      });
+
+      if (response.ok) {
+        showToast("success", "Area Updated", "Area value has been updated");
+        onRefresh();
+        cancelEditingArea();
+      } else {
+        showToast("error", "Update failed", "Could not update area value");
+      }
+    } catch (error) {
+      console.error("area update failed:", error);
+      showToast("error", "Update failed", "Could not update area value");
+    }
+  };
+
   const visibleFolders = folders.filter((f) => !deletedFolders.includes(f.id));
   const summaryFiles = files.filter(
     (file) =>
@@ -551,6 +611,57 @@ export default function FileList({
       !deletedPdfs.includes(file.id) &&
       file.status !== "summary-scanned",
   );
+
+  const paginatedFolders = visibleFolders
+    .filter((f) => !movedFolders[f.id])
+    .slice((folderPage - 1) * ITEMS_PER_PAGE, folderPage * ITEMS_PER_PAGE);
+  const folderTotalPages = Math.ceil(
+    visibleFolders.filter((f) => !movedFolders[f.id]).length / ITEMS_PER_PAGE,
+  );
+
+  const paginatedSummaryFiles = summaryFiles.slice(
+    (summaryPage - 1) * ITEMS_PER_PAGE,
+    summaryPage * ITEMS_PER_PAGE,
+  );
+  const summaryTotalPages = Math.ceil(summaryFiles.length / ITEMS_PER_PAGE);
+
+  const paginatedRegularFiles = regularFiles.slice(
+    (regularPage - 1) * ITEMS_PER_PAGE,
+    regularPage * ITEMS_PER_PAGE,
+  );
+  const regularTotalPages = Math.ceil(regularFiles.length / ITEMS_PER_PAGE);
+
+  const renderPagination = (
+    currentPage: number,
+    totalPages: number,
+    onPageChange: (page: number) => void,
+  ) => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          Page {currentPage} of {totalPages}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="p-1.5 rounded hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <CaretLeft weight="bold" className="w-4 h-4 text-gray-700" />
+          </button>
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="p-1.5 rounded hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <CaretRight weight="bold" className="w-4 h-4 text-gray-700" />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   if (loading) {
     return <FileListSkeleton />;
@@ -584,9 +695,7 @@ export default function FileList({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {visibleFolders
-                .filter((f) => !movedFolders[f.id])
-                .map((folder) => {
+              {paginatedFolders.map((folder) => {
                   const IconComponent = (ICON_MAP[folder.icon || "Folder"] ||
                     FolderIcon) as React.ComponentType<{
                     weight?: IconWeight;
@@ -732,6 +841,7 @@ export default function FileList({
                 })}
             </tbody>
           </table>
+          {renderPagination(folderPage, folderTotalPages, setFolderPage)}
         </div>
       )}
 
@@ -799,7 +909,7 @@ export default function FileList({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {summaryFiles.flatMap((file) => {
+              {paginatedSummaryFiles.flatMap((file) => {
                 const parentFolder = allFolders.find(
                   (f) => f.id === file.folderId,
                 );
@@ -862,13 +972,69 @@ export default function FileList({
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-mono text-gray-900">
-                        {file.summaryData
-                          ? file.summaryData
-                              .reduce((sum, assoc) => sum + assoc.totalArea, 0)
-                              .toFixed(2)
-                          : "--"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {editingArea?.fileId === file.id &&
+                        !editingArea.associationId ? (
+                          <>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="w-24 px-2 py-1 text-sm font-mono border border-emerald-500 rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveAreaEdit();
+                                if (e.key === "Escape") cancelEditingArea();
+                              }}
+                            />
+                            <button
+                              onClick={saveAreaEdit}
+                              className="p-1 rounded hover:bg-emerald-100 transition text-emerald-600"
+                            >
+                              <Check weight="bold" className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={cancelEditingArea}
+                              className="p-1 rounded hover:bg-gray-100 transition text-gray-600"
+                            >
+                              <XIcon weight="bold" className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-mono text-gray-900">
+                              {file.summaryData
+                                ? file.summaryData
+                                    .reduce(
+                                      (sum, assoc) => sum + assoc.totalArea,
+                                      0,
+                                    )
+                                    .toFixed(2)
+                                : "--"}
+                            </span>
+                            {file.summaryData && (
+                              <button
+                                onClick={() =>
+                                  startEditingArea(
+                                    file.id,
+                                    file.summaryData!.reduce(
+                                      (sum, assoc) => sum + assoc.totalArea,
+                                      0,
+                                    ),
+                                  )
+                                }
+                                className={`p-1 rounded hover:bg-gray-100 transition ${textColor}`}
+                              >
+                                <PencilSimple
+                                  weight="regular"
+                                  className="w-4 h-4"
+                                />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {file.estimatedCost ? (
@@ -1086,9 +1252,59 @@ export default function FileList({
                               </span>
                             </td>
                             <td className="px-4 py-2">
-                              <span className="font-mono text-gray-900 text-sm">
-                                {association.totalArea.toFixed(2)}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                {editingArea?.fileId === file.id &&
+                                editingArea.associationId === association.id ? (
+                                  <>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="w-20 px-2 py-1 text-sm font-mono border border-emerald-500 rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") saveAreaEdit();
+                                        if (e.key === "Escape")
+                                          cancelEditingArea();
+                                      }}
+                                    />
+                                    <button
+                                      onClick={saveAreaEdit}
+                                      className="p-0.5 rounded hover:bg-emerald-100 transition text-emerald-600"
+                                    >
+                                      <Check weight="bold" className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={cancelEditingArea}
+                                      className="p-0.5 rounded hover:bg-gray-100 transition text-gray-600"
+                                    >
+                                      <XIcon weight="bold" className="w-3 h-3" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="font-mono text-gray-900 text-sm">
+                                      {association.totalArea.toFixed(2)}
+                                    </span>
+                                    <button
+                                      onClick={() =>
+                                        startEditingArea(
+                                          file.id,
+                                          association.totalArea,
+                                          association.id,
+                                        )
+                                      }
+                                      className={`p-0.5 rounded hover:bg-gray-100 transition ${textColor}`}
+                                    >
+                                      <PencilSimple
+                                        weight="regular"
+                                        className="w-3 h-3"
+                                      />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-2">
                               <span className="font-mono text-gray-700 text-sm">
@@ -1184,6 +1400,7 @@ export default function FileList({
               })}
             </tbody>
           </table>
+          {renderPagination(summaryPage, summaryTotalPages, setSummaryPage)}
         </div>
       )}
 
@@ -1255,7 +1472,7 @@ export default function FileList({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {regularFiles.map((file) => {
+              {paginatedRegularFiles.map((file) => {
                 const parentFolder = allFolders.find(
                   (f) => f.id === file.folderId,
                 );
@@ -1526,6 +1743,7 @@ export default function FileList({
               })}
             </tbody>
           </table>
+          {renderPagination(regularPage, regularTotalPages, setRegularPage)}
         </div>
       )}
 

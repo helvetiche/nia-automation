@@ -25,13 +25,11 @@ export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
   worksheet.columns = [{ width: 5 }, { width: 60 }, { width: 24 }];
 
   worksheet.pageSetup = {
-    paperSize: undefined,
+    paperSize: 5,
     orientation: "portrait",
     fitToPage: true,
     fitToWidth: 1,
     fitToHeight: 0,
-    paperWidth: "8.5in",
-    paperHeight: "13in",
     margins: {
       left: 0.7,
       right: 0.7,
@@ -118,7 +116,7 @@ export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
   };
 
   let grandTotal = 0;
-  const ROWS_PER_PAGE = 60;
+  const ROWS_PER_PAGE = 65;
   let currentRow = 5;
 
   data.divisions.forEach((division) => {
