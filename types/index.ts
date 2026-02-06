@@ -54,3 +54,13 @@ export interface SummaryData {
   usage: number;
   notice?: string;
 }
+
+export interface Template {
+  id: string;
+  name: string;
+  fileName: string;
+  storageUrl: string;
+  storagePath: string;
+  uploadedAt: number;
+  type: string;
+}

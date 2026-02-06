@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Flag } from '@phosphor-icons/react';
+import { useState, useEffect } from 'react';
+import { Flag, X } from '@phosphor-icons/react';
+import Modal from '@/components/Modal';
 
 interface NoticePopoverProps {
   isOpen: boolean;
@@ -11,129 +12,120 @@ interface NoticePopoverProps {
   anchorRef: React.RefObject<HTMLElement | null>;
 }
 
-export default function NoticePopover({ isOpen, onClose, onSave, currentNotice = '', anchorRef }: NoticePopoverProps) {
+const NOTICE_TEMPLATES = [
+  'Wrong calculations',
+  'Unreadable texts',
+  'Missing data',
+  'Incorrect format',
+  'Needs verification',
+  'Duplicate entry',
+  'Incomplete information',
+];
+
+export default function NoticePopover({ isOpen, onClose, onSave, currentNotice = '' }: NoticePopoverProps) {
   const [notice, setNotice] = useState(currentNotice);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     setNotice(currentNotice);
   }, [currentNotice]);
 
   useEffect(() => {
-    if (isOpen && anchorRef.current && popoverRef.current) {
-      const anchorRect = anchorRef.current.getBoundingClientRect();
-      const popoverRect = popoverRef.current.getBoundingClientRect();
-      
-      let top = anchorRect.bottom + 8;
-      let left = anchorRect.left - popoverRect.width + anchorRect.width;
-      
-      if (left < 8) {
-        left = 8;
-      }
-      
-      if (top + popoverRect.height > window.innerHeight - 8) {
-        top = anchorRect.top - popoverRect.height - 8;
-      }
-      
-      setPosition({ top, left });
-      
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 100);
+    if (!isOpen) {
+      setIsClosing(false);
     }
-  }, [isOpen, anchorRef]);
+  }, [isOpen]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node) &&
-          anchorRef.current && !anchorRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscape);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen, onClose, anchorRef]);
+  const closeWithAnimation = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 600);
+  };
 
   const saveNotice = () => {
     onSave(notice.trim());
-    onClose();
+    closeWithAnimation();
   };
 
   const removeNotice = () => {
     onSave('');
-    onClose();
+    closeWithAnimation();
   };
 
-  if (!isOpen) return null;
+  const selectTemplate = (template: string) => {
+    setNotice(template);
+  };
 
   return (
-    <div
-      ref={popoverRef}
-      className="fixed z-50 w-80 bg-white border border-gray-200 rounded-lg shadow-lg"
-      style={{ top: position.top, left: position.left }}
-    >
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Flag weight="fill" className="w-4 h-4 text-orange-500" />
-          <h3 className="text-sm font-semibold text-gray-900">Add Notice</h3>
+    <Modal isOpen={isOpen && !isClosing} onClose={onClose} title="">
+      <div className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Flag weight="fill" className="w-5 h-5 text-orange-500" />
+          <h2 className="text-lg font-semibold text-gray-900">Add Notice</h2>
         </div>
-        
-        <textarea
-          ref={textareaRef}
-          value={notice}
-          onChange={(e) => setNotice(e.target.value)}
-          placeholder="Write a notice about this item..."
-          maxLength={100}
-          rows={3}
-          className="w-full p-2 text-sm border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-        />
-        
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-xs text-gray-500">
-            {notice.length}/100 characters
-          </span>
-          
-          <div className="flex items-center gap-2">
-            {currentNotice && (
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Quick Templates
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {NOTICE_TEMPLATES.map((template) => (
               <button
-                onClick={removeNotice}
-                className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded transition"
+                key={template}
+                onClick={() => selectTemplate(template)}
+                className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-orange-100 hover:text-orange-700 transition"
               >
-                Remove
+                {template}
               </button>
-            )}
-            <button
-              onClick={onClose}
-              className="px-3 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={saveNotice}
-              disabled={notice.trim().length === 0}
-              className="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              Save
-            </button>
+            ))}
           </div>
         </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Custom Notice
+          </label>
+          <textarea
+            value={notice}
+            onChange={(e) => setNotice(e.target.value)}
+            placeholder="Write a notice about this item..."
+            maxLength={100}
+            rows={3}
+            className="w-full p-3 text-sm border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            autoFocus
+          />
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-xs text-gray-500">
+              {notice.length}/100 characters
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          {currentNotice && (
+            <button
+              onClick={removeNotice}
+              className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition"
+            >
+              Remove Notice
+            </button>
+          )}
+          <button
+            onClick={closeWithAnimation}
+            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={saveNotice}
+            disabled={notice.trim().length === 0}
+            className="px-4 py-2 text-sm bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Save Notice
+          </button>
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

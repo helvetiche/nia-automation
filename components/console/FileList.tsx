@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { Folder, PdfFile } from '@/types';
 import { 
   Folder as FolderIcon,
@@ -48,6 +48,8 @@ import { useToast } from '@/components/ToastContainer';
 import PdfPageModal from './PdfPageModal';
 import MovePdfModal from './MovePdfModal';
 import NoticePopover from './NoticePopover';
+import RowActionsMenu from './RowActionsMenu';
+import FileListSkeleton from './FileListSkeleton';
 
 interface FileListProps {
   folders: Folder[];
@@ -63,6 +65,7 @@ interface FileListProps {
   batchScanning: boolean;
   currentlyScanning: string | null;
   estimatedTimeRemaining: number;
+  loading?: boolean;
 }
 
 const ICON_MAP: Record<string, React.ComponentType> = {
@@ -131,6 +134,7 @@ export default function FileList({
   batchScanning,
   currentlyScanning,
   estimatedTimeRemaining,
+  loading = false,
 }: FileListProps) {
   const [scanning, setScanning] = useState<string[]>([]);
   const [deleteModal, setDeleteModal] = useState<{ folderId: string; folderName: string } | null>(null);
@@ -190,12 +194,6 @@ export default function FileList({
 
   const toggleSelectPdf = (id: string) => {
     onToggleSelectPdf(id);
-  };
-
-  const toggleSelectAll = () => {
-    const visiblePdfs = files.filter(file => !movedPdfs[file.id]);
-    const pdfIds = visiblePdfs.map(file => file.id);
-    onToggleSelectAllPdfs(pdfIds);
   };
 
   const toggleSummaryExpansion = (fileId: string) => {
@@ -455,6 +453,10 @@ export default function FileList({
     file.status !== 'summary-scanned'
   );
 
+  if (loading) {
+    return <FileListSkeleton />;
+  }
+
   return (
     <div className="space-y-6">
       {visibleFolders.length > 0 && (
@@ -503,7 +505,7 @@ export default function FileList({
                 const IconComponent = (ICON_MAP[folder.icon || 'Folder'] || FolderIcon) as React.ComponentType<{ weight?: IconWeight; className?: string }>;
                 const colorClass = COLOR_MAP[folder.color || 'blue'] || 'bg-blue-500';
                 const textColor = TEXT_COLOR_MAP[folder.color || 'blue'] || 'text-blue-700';
-                const folderNoticeRef = useRef<HTMLButtonElement>(null);
+                const folderNoticeRef = { current: null } as React.RefObject<HTMLButtonElement | null>;
                 
                 const subfolderCount = allFolders.filter(f => f.parentId === folder.id).length;
                 const fileCount = files.filter(f => f.folderId === folder.id).length;
@@ -519,7 +521,11 @@ export default function FileList({
                   : `transition ${GRADIENT_HOVER_MAP[folder.color || 'blue'] || 'hover:bg-gradient-to-l hover:from-blue-500/40 hover:to-transparent'}`;
                 
                 return (
-                  <tr key={folder.id} className={rowClassName}>
+                  <tr 
+                    key={folder.id} 
+                    className={`${rowClassName} cursor-pointer`}
+                    onDoubleClick={() => onSelectFolder(folder.id)}
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded ${colorClass} flex items-center justify-center flex-shrink-0`}>
@@ -568,58 +574,33 @@ export default function FileList({
                             <Flag weight={hasNotice ? "fill" : "regular"} className="w-4 h-4" />
                           </button>
                         </Tooltip>
-                        <Tooltip 
-                          title="Sync" 
-                          description="Calculate totals for files in this folder"
-                          icon={<ArrowsClockwise weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => syncFolder(folder.id, folder.name)}
-                            disabled={syncingFolders.has(folder.id)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor} disabled:opacity-50`}
-                          >
-                            <ArrowsClockwise 
-                              weight="regular" 
-                              className={`w-4 h-4 ${syncingFolders.has(folder.id) ? 'animate-spin' : ''}`} 
-                            />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title="Open" 
-                          description="Browse this folder's contents"
-                          icon={<FolderOpen weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => onSelectFolder(folder.id)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <FolderOpen weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title="Move" 
-                          description="Move this folder to another location"
-                          icon={<ArrowsDownUp weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => setMoveModal(folder)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <ArrowsDownUp weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title="Delete" 
-                          description="Remove this folder and all its contents"
-                          icon={<Trash weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => setDeleteModal({ folderId: folder.id, folderName: folder.name })}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <Trash weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
+                        <RowActionsMenu
+                          accentColor={folder.color || 'blue'}
+                          actions={[
+                            {
+                              icon: <ArrowsClockwise weight="regular" className="w-4 h-4" />,
+                              label: 'Sync Totals',
+                              onClick: () => syncFolder(folder.id, folder.name),
+                              disabled: syncingFolders.has(folder.id),
+                            },
+                            {
+                              icon: <FolderOpen weight="regular" className="w-4 h-4" />,
+                              label: 'Open Folder',
+                              onClick: () => onSelectFolder(folder.id),
+                            },
+                            {
+                              icon: <ArrowsDownUp weight="regular" className="w-4 h-4" />,
+                              label: 'Move Folder',
+                              onClick: () => setMoveModal(folder),
+                            },
+                            {
+                              icon: <Trash weight="regular" className="w-4 h-4" />,
+                              label: 'Delete Folder',
+                              onClick: () => setDeleteModal({ folderId: folder.id, folderName: folder.name }),
+                              color: 'text-red-600 hover:bg-red-50',
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -638,6 +619,19 @@ export default function FileList({
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                {isSelectMode && (
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={summaryFiles.length > 0 && summaryFiles.every(file => selectedPdfs.has(file.id)) ? true : false}
+                      onChange={() => {
+                        const pdfIds = summaryFiles.map(file => file.id);
+                        onToggleSelectAllPdfs(pdfIds);
+                      }}
+                      className="w-5 h-5 rounded border-gray-300 text-emerald-800 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <FilePdf weight="regular" className="w-4 h-4" />
@@ -677,7 +671,7 @@ export default function FileList({
                 const fileColor = parentFolder?.color || 'red';
                 const colorClass = COLOR_MAP[fileColor] || 'bg-red-500';
                 const textColor = TEXT_COLOR_MAP[fileColor] || 'text-red-700';
-                const summaryNoticeRef = useRef<HTMLButtonElement>(null);
+                const summaryNoticeRef = { current: null } as React.RefObject<HTMLButtonElement | null>;
 
                 const hasNotice = file.notice && file.notice.trim().length > 0;
                 const rowClassName = hasNotice 
@@ -686,6 +680,16 @@ export default function FileList({
                 
                 const mainRow = (
                   <tr key={file.id} className={rowClassName}>
+                    {isSelectMode && (
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedPdfs.has(file.id)}
+                          onChange={() => onToggleSelectPdf(file.id)}
+                          className="w-5 h-5 rounded border-gray-300 text-emerald-800 cursor-pointer"
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <button
@@ -808,67 +812,38 @@ export default function FileList({
                             <Flag weight={hasNotice ? "fill" : "regular"} className="w-4 h-4" />
                           </button>
                         </Tooltip>
-                        <Tooltip 
-                          title="View Associations" 
-                          description="View detailed irrigation associations data"
-                          icon={<Eye weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => setSummaryViewModal(file)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <Eye weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title="View Pages" 
-                          description="View the PDF pages that were scanned"
-                          icon={<FilePdf weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => setPdfPageModal(file)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <FilePdf weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title="Move" 
-                          description="Move this file to another folder"
-                          icon={<ArrowsDownUp weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => setMovePdfModal(file)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <ArrowsDownUp weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title="Rescan" 
-                          description="Re-extract data from this PDF"
-                          icon={<ScanSmiley weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => setScanOptionsModal(file)}
-                            disabled={scanning.includes(file.id) || batchScanning}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition disabled:opacity-50 ${textColor}`}
-                          >
-                            <ScanSmiley weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title="Delete" 
-                          description="Remove this file permanently"
-                          icon={<Trash weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => deletePdf(file.id, file.name)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <Trash weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
+                        <RowActionsMenu
+                          accentColor={fileColor}
+                          actions={[
+                            {
+                              icon: <Eye weight="regular" className="w-4 h-4" />,
+                              label: 'View Associations',
+                              onClick: () => setSummaryViewModal(file),
+                            },
+                            {
+                              icon: <FilePdf weight="regular" className="w-4 h-4" />,
+                              label: 'View Pages',
+                              onClick: () => setPdfPageModal(file),
+                            },
+                            {
+                              icon: <ArrowsDownUp weight="regular" className="w-4 h-4" />,
+                              label: 'Move File',
+                              onClick: () => setMovePdfModal(file),
+                            },
+                            {
+                              icon: <ScanSmiley weight="regular" className="w-4 h-4" />,
+                              label: 'Rescan',
+                              onClick: () => setScanOptionsModal(file),
+                              disabled: scanning.includes(file.id) || batchScanning,
+                            },
+                            {
+                              icon: <Trash weight="regular" className="w-4 h-4" />,
+                              label: 'Delete File',
+                              onClick: () => deletePdf(file.id, file.name),
+                              color: 'text-red-600 hover:bg-red-50',
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -876,7 +851,7 @@ export default function FileList({
 
                 const subRows = file.summaryData && expandedSummaries.has(file.id) 
                   ? file.summaryData.map((association, index) => {
-                      const associationNoticeRef = useRef<HTMLButtonElement>(null);
+                      const associationNoticeRef = { current: null } as React.RefObject<HTMLButtonElement | null>;
                       const hasAssociationNotice = association.notice && association.notice.trim().length > 0;
                       const subRowClassName = hasAssociationNotice 
                         ? `bg-gradient-to-l from-orange-100/40 to-gray-50 hover:from-orange-200/60 hover:to-gray-100 transition`
@@ -884,6 +859,9 @@ export default function FileList({
 
                       return (
                         <tr key={`${file.id}-sub-${index}`} className={subRowClassName}>
+                          {isSelectMode && (
+                            <td className="px-4 py-2"></td>
+                          )}
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-3 pl-8">
                               <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 ${
@@ -1073,7 +1051,7 @@ export default function FileList({
                 const fileColor = parentFolder?.color || 'red';
                 const colorClass = COLOR_MAP[fileColor] || 'bg-red-500';
                 const textColor = TEXT_COLOR_MAP[fileColor] || 'text-red-700';
-                const regularNoticeRef = useRef<HTMLButtonElement>(null);
+                const regularNoticeRef = { current: null } as React.RefObject<HTMLButtonElement | null>;
                 
                 const { totalArea, totalIrrigatedArea, totalPlantedArea } = calculateTotals(file);
 
@@ -1278,69 +1256,38 @@ export default function FileList({
                             <Eye weight="regular" className="w-4 h-4" />
                           </button>
                         </Tooltip>
-                        {file.status === 'scanned' && file.extractedData && (
-                          <Tooltip 
-                            title="Summary" 
-                            description="View page-by-page breakdown of totals"
-                            icon={<ChartLineUp weight="regular" className="w-4 h-4" />}
-                          >
-                            <button
-                              onClick={() => setSummaryModal(file)}
-                              className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                            >
-                              <ChartLineUp weight="regular" className="w-4 h-4" />
-                            </button>
-                          </Tooltip>
-                        )}
-                        <Tooltip 
-                          title="View Pages" 
-                          description="View the PDF pages"
-                          icon={<FilePdf weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => setPdfPageModal(file)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <FilePdf weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title="Move" 
-                          description="Move this file to another folder"
-                          icon={<ArrowsDownUp weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => setMovePdfModal(file)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <ArrowsDownUp weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title={file.status === 'scanned' ? 'Rescan' : 'Scan'} 
-                          description={file.status === 'scanned' ? 'Re-extract data from this PDF' : 'Extract table data from this PDF'}
-                          icon={<ScanSmiley weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => setScanOptionsModal(file)}
-                            disabled={scanning.includes(file.id) || batchScanning}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition disabled:opacity-50 ${textColor}`}
-                          >
-                            <ScanSmiley weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip 
-                          title="Delete" 
-                          description="Remove this file permanently"
-                          icon={<Trash weight="regular" className="w-4 h-4" />}
-                        >
-                          <button
-                            onClick={() => deletePdf(file.id, file.name)}
-                            className={`p-1.5 rounded hover:bg-gray-100 transition ${textColor}`}
-                          >
-                            <Trash weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
+                        <RowActionsMenu
+                          accentColor={fileColor}
+                          actions={[
+                            ...(file.status === 'scanned' && file.extractedData ? [{
+                              icon: <ChartLineUp weight="regular" className="w-4 h-4" />,
+                              label: 'View Summary',
+                              onClick: () => setSummaryModal(file),
+                            }] : []),
+                            {
+                              icon: <FilePdf weight="regular" className="w-4 h-4" />,
+                              label: 'View Pages',
+                              onClick: () => setPdfPageModal(file),
+                            },
+                            {
+                              icon: <ArrowsDownUp weight="regular" className="w-4 h-4" />,
+                              label: 'Move File',
+                              onClick: () => setMovePdfModal(file),
+                            },
+                            {
+                              icon: <ScanSmiley weight="regular" className="w-4 h-4" />,
+                              label: file.status === 'scanned' ? 'Rescan' : 'Scan',
+                              onClick: () => setScanOptionsModal(file),
+                              disabled: scanning.includes(file.id) || batchScanning,
+                            },
+                            {
+                              icon: <Trash weight="regular" className="w-4 h-4" />,
+                              label: 'Delete File',
+                              onClick: () => deletePdf(file.id, file.name),
+                              color: 'text-red-600 hover:bg-red-50',
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

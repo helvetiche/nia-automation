@@ -6,6 +6,8 @@ import Ribbon from './Ribbon';
 import FileGrid from './FileGrid';
 import CreateFolderModal from './CreateFolderModal';
 import UploadModal from './UploadModal';
+import UploadTemplateModal from './UploadTemplateModal';
+import TemplateModal from './TemplateModal';
 import { apiCall } from '@/lib/api/client';
 
 interface FolderBrowserProps {
@@ -26,6 +28,8 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
   const [loading, setLoading] = useState(true);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [showUploadTemplate, setShowUploadTemplate] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'scanned' | 'unscanned'>('all');
   const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'date' | 'size'>('name-asc');
@@ -72,12 +76,15 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
   }, []);
 
   const selectFolder = async (folderId: string | null) => {
+    setLoading(true);
     setCurrentFolder(folderId);
     localStorage.setItem(STORAGE_KEYS.currentFolder, folderId || '');
     await loadFiles(folderId);
+    setLoading(false);
   };
 
   const refreshData = async (force = false) => {
+    setLoading(true);
     if (force) {
       setFiles([]);
       setFolders([]);
@@ -85,6 +92,7 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
     await loadFolders();
     await loadFiles(currentFolder);
     setRefreshTrigger(prev => prev + 1);
+    setLoading(false);
   };
 
   const handleUploadOptimistic = (uploadedFiles: File[]) => {
@@ -132,19 +140,44 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
     return result;
   }, [files, searchQuery, filterStatus, sortBy]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-gray-600">Loading workspace...</div>
-      </div>
-    );
-  }
+  const exportToExcel = async (templateId: string | null) => {
+    if (!currentFolder) {
+      alert('Please select a folder first');
+      return;
+    }
+
+    try {
+      const url = templateId 
+        ? `/api/reports/lipa?folderId=${currentFolder}&templateId=${templateId}`
+        : `/api/reports/lipa?folderId=${currentFolder}`;
+      
+      const response = await apiCall(url);
+      
+      if (!response.ok) {
+        throw new Error('export failed');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `LIPA_Report_${Date.now()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('export broken:', error);
+      alert('export failed, try again');
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Ribbon
         onCreateFolder={() => setShowCreateFolder(true)}
         onUploadFile={() => setShowUpload(true)}
+        onUploadTemplate={() => setShowUploadTemplate(true)}
         onRefresh={refreshData}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -153,6 +186,8 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
         sortBy={sortBy}
         onSortChange={setSortBy}
         refreshTrigger={refreshTrigger}
+        currentFolderId={currentFolder}
+        onExportExcel={() => setShowTemplateModal(true)}
       />
       
       <FileGrid
@@ -166,6 +201,7 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
         onUploadFile={() => setShowUpload(true)}
         viewMode={viewMode}
         onViewModeChange={onViewModeChange}
+        loading={loading}
       />
 
       {showCreateFolder && (
@@ -182,6 +218,20 @@ export default function FolderBrowser({ onViewPdf, viewMode, onViewModeChange }:
           onClose={() => setShowUpload(false)}
           onSuccess={refreshData}
           onUploadOptimistic={handleUploadOptimistic}
+        />
+      )}
+
+      {showUploadTemplate && (
+        <UploadTemplateModal
+          onClose={() => setShowUploadTemplate(false)}
+          onSuccess={() => setShowUploadTemplate(false)}
+        />
+      )}
+
+      {showTemplateModal && currentFolder && (
+        <TemplateModal
+          onClose={() => setShowTemplateModal(false)}
+          onSelectTemplate={exportToExcel}
         />
       )}
     </div>

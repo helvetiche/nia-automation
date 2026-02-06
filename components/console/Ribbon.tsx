@@ -23,12 +23,14 @@ import {
   ChartBar,
   Lightning,
   Gear,
-  Warning
+  Warning,
+  FileXls
 } from '@phosphor-icons/react/dist/ssr';
 
 interface RibbonProps {
   onCreateFolder: () => void;
   onUploadFile: () => void;
+  onUploadTemplate: () => void;
   onRefresh: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -37,11 +39,14 @@ interface RibbonProps {
   sortBy: 'name-asc' | 'name-desc' | 'date' | 'size';
   onSortChange: (sort: 'name-asc' | 'name-desc' | 'date' | 'size') => void;
   refreshTrigger?: number;
+  currentFolderId?: string | null;
+  onExportExcel: (templateId: string | null) => void;
 }
 
 export default function Ribbon({ 
   onCreateFolder, 
-  onUploadFile, 
+  onUploadFile,
+  onUploadTemplate,
   onRefresh,
   searchQuery,
   onSearchChange,
@@ -49,7 +54,9 @@ export default function Ribbon({
   onFilterChange,
   sortBy,
   onSortChange,
-  refreshTrigger
+  refreshTrigger,
+  currentFolderId,
+  onExportExcel
 }: RibbonProps) {
   const router = useRouter();
   const [stats, setStats] = useState<{
@@ -266,6 +273,23 @@ export default function Ribbon({
           >
             <FilePlus weight="regular" className="w-6 h-6 text-emerald-800" />
             <span className="text-xs text-gray-700">Upload PDF</span>
+          </button>
+
+          <button
+            onClick={onUploadTemplate}
+            className="flex flex-col items-center gap-1 px-4 py-2 hover:bg-white rounded transition group"
+          >
+            <FileXls weight="regular" className="w-6 h-6 text-emerald-800" />
+            <span className="text-xs text-gray-700">Upload Template</span>
+          </button>
+
+          <button
+            onClick={() => onExportExcel(null)}
+            disabled={!currentFolderId}
+            className="flex flex-col items-center gap-1 px-4 py-2 hover:bg-white rounded transition group disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FileXls weight="regular" className="w-6 h-6 text-emerald-800" />
+            <span className="text-xs text-gray-700">Export Excel</span>
           </button>
 
           <div className="w-px h-10 bg-gray-300 mx-2" />

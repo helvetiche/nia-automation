@@ -31,7 +31,8 @@ import {
   CheckSquare,
   DotsThree,
   ArrowsClockwise,
-  CurrencyDollar
+  CurrencyDollar,
+  FileXls
 } from '@phosphor-icons/react/dist/ssr';
 import type { IconWeight } from '@phosphor-icons/react';
 import { apiCall } from '@/lib/api/client';
@@ -46,6 +47,7 @@ import { useToast } from '@/components/ToastContainer';
 import FileList from './FileList';
 import BulkScanModal from './BulkScanModal';
 import BulkMovePdfModal from './BulkMovePdfModal';
+import TemplateModal from './TemplateModal';
 
 interface FileGridProps {
   folders: Folder[];
@@ -58,6 +60,7 @@ interface FileGridProps {
   onUploadFile: () => void;
   viewMode: 'grid' | 'table';
   onViewModeChange: (mode: 'grid' | 'table') => void;
+  loading?: boolean;
 }
 
 const ICON_MAP: Record<string, React.ComponentType> = {
@@ -134,6 +137,7 @@ export default function FileGrid({
   onUploadFile,
   viewMode,
   onViewModeChange,
+  loading = false,
 }: FileGridProps) {
   const [scanning, setScanning] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
@@ -149,6 +153,7 @@ export default function FileGrid({
   const [bulkActionsMenu, setBulkActionsMenu] = useState(false);
   const [bulkMoveModal, setBulkMoveModal] = useState(false);
   const [bulkScanModal, setBulkScanModal] = useState(false);
+  const [bulkReportModal, setBulkReportModal] = useState(false);
   const [syncingFolders, setSyncingFolders] = useState<Set<string>>(new Set());
   const [batchScanning, setBatchScanning] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -555,6 +560,56 @@ export default function FileGrid({
     }
   };
 
+  const generateBulkReport = async (templateId: string | null) => {
+    const selectedIds = Array.from(selectedItems);
+    if (selectedIds.length === 0) {
+      showToast('error', 'No Selection', 'Please select files or folders to generate report');
+      return;
+    }
+
+    try {
+      showToast('info', 'Generating Report', 'Creating Excel report...');
+      
+      const selectedFiles = files.filter(f => selectedIds.includes(f.id));
+      const selectedFolders = folders.filter(f => selectedIds.includes(f.id));
+      
+      let url = '/api/reports/lipa?';
+      
+      if (selectedFiles.length > 0) {
+        url += `fileIds=${selectedFiles.map(f => f.id).join(',')}`;
+      } else if (selectedFolders.length > 0) {
+        url += `folderIds=${selectedFolders.map(f => f.id).join(',')}`;
+      }
+      
+      if (templateId) {
+        url += `&templateId=${templateId}`;
+      }
+      
+      const response = await apiCall(url);
+      
+      if (!response.ok) {
+        throw new Error('export failed');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `LIPA_Report_${Date.now()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+
+      showToast('success', 'Report Generated', 'Excel report downloaded successfully');
+      setSelectedItems(new Set());
+      setIsSelectMode(false);
+    } catch (error) {
+      console.error('report generation broken:', error);
+      showToast('error', 'Report Failed', 'Could not generate report');
+    }
+  };
+
   return (
     <div 
       className="flex-1 overflow-y-auto p-6"
@@ -642,6 +697,16 @@ export default function FileGrid({
                   </button>
                   <button
                     onClick={() => {
+                      setBulkReportModal(true);
+                      setBulkActionsMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"
+                  >
+                    <FileXls weight="regular" className="w-4 h-4" />
+                    Create Report
+                  </button>
+                  <button
+                    onClick={() => {
                       showToast('info', 'Coming Soon', 'Bulk delete feature coming soon');
                       setBulkActionsMenu(false);
                     }}
@@ -682,6 +747,7 @@ export default function FileGrid({
           batchScanning={batchScanning}
           currentlyScanning={currentlyScanning}
           estimatedTimeRemaining={estimatedTimeRemaining}
+          loading={loading}
         />
       ) : (
         <>
@@ -980,7 +1046,7 @@ export default function FileGrid({
                     Irrigation Associations ({file.summaryData.length})
                   </div>
                   <div className="space-y-1 max-h-20 overflow-y-auto">
-                    {file.summaryData.slice(0, 3).map((assoc, index) => (
+                    {file.summaryData.slice(0, 3).map((assoc) => (
                       <div key={assoc.id} className="flex justify-between items-center text-xs">
                         <span className="font-mono text-gray-600 truncate flex-1 mr-2">
                           {assoc.name}
@@ -1208,6 +1274,16 @@ export default function FileGrid({
           onClose={() => setBulkScanModal(false)}
           onConfirm={batchScanPdfs}
           selectedCount={selectedItems.size}
+        />
+      )}
+
+      {bulkReportModal && (
+        <TemplateModal
+          onClose={() => setBulkReportModal(false)}
+          onSelectTemplate={(templateId) => {
+            generateBulkReport(templateId);
+            setBulkReportModal(false);
+          }}
         />
       )}
 
