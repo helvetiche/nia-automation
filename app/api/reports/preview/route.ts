@@ -3,17 +3,17 @@ import { adminDb } from "@/lib/firebase/adminConfig";
 
 function capitalizeAssociation(name: string): string {
   const exceptions = ["NON-IA", "NON - IA", "NON IA", "NONIA"];
-  
+
   const upperName = name.toUpperCase();
-  if (exceptions.some(exc => upperName.includes(exc))) {
+  if (exceptions.some((exc) => upperName.includes(exc))) {
     return name.toUpperCase();
   }
-  
+
   return name
     .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 export async function GET(request: NextRequest) {
@@ -26,8 +26,11 @@ export async function GET(request: NextRequest) {
     const folderId = request.nextUrl.searchParams.get("folderId");
     const folderIds = request.nextUrl.searchParams.get("folderIds");
     const fileIds = request.nextUrl.searchParams.get("fileIds");
-    const title = request.nextUrl.searchParams.get("title") || "LIST OF IRRIGATED AND PLANTED AREA (LIPA)";
-    const season = request.nextUrl.searchParams.get("season") || "DRY CROPPING SEASON 2025";
+    const title =
+      request.nextUrl.searchParams.get("title") ||
+      "LIST OF IRRIGATED AND PLANTED AREA (LIPA)";
+    const season =
+      request.nextUrl.searchParams.get("season") || "DRY CROPPING SEASON 2025";
 
     if (!folderId && !folderIds && !fileIds) {
       return NextResponse.json(

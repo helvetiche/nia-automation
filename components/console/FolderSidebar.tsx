@@ -104,10 +104,10 @@ export default function FolderSidebar({
     }
 
     const foldersToExpand = new Set<string>();
-    
+
     const findMatchingFolders = (folderId: string | null = null): void => {
       const children = folders.filter((f) => f.parentId === folderId);
-      
+
       for (const child of children) {
         if (child.name.toLowerCase().includes(searchQuery.toLowerCase())) {
           let current = child.parentId;
@@ -120,14 +120,14 @@ export default function FolderSidebar({
         findMatchingFolders(child.id);
       }
     };
-    
+
     findMatchingFolders();
     return foldersToExpand;
   }, [searchQuery, folders]);
 
-  const [manuallyExpandedFolders, setManuallyExpandedFolders] = useState<Set<string>>(
-    new Set(),
-  );
+  const [manuallyExpandedFolders, setManuallyExpandedFolders] = useState<
+    Set<string>
+  >(new Set());
 
   const expandedFolders = useMemo(() => {
     return new Set([...computedExpandedFolders, ...manuallyExpandedFolders]);
@@ -145,9 +145,9 @@ export default function FolderSidebar({
 
   const hasMatchingDescendant = (folderId: string): boolean => {
     if (!searchQuery) return true;
-    
+
     const children = folders.filter((f) => f.parentId === folderId);
-    
+
     for (const child of children) {
       if (child.name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return true;
@@ -156,27 +156,29 @@ export default function FolderSidebar({
         return true;
       }
     }
-    
+
     return false;
   };
 
   const getRootFolders = () => {
     const result = folders.filter((f) => !f.parentId);
     if (!searchQuery) return result;
-    
-    return result.filter((f) => 
-      f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hasMatchingDescendant(f.id)
+
+    return result.filter(
+      (f) =>
+        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        hasMatchingDescendant(f.id),
     );
   };
 
   const getChildFolders = (parentId: string) => {
     const result = folders.filter((f) => f.parentId === parentId);
     if (!searchQuery) return result;
-    
-    return result.filter((f) =>
-      f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hasMatchingDescendant(f.id)
+
+    return result.filter(
+      (f) =>
+        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        hasMatchingDescendant(f.id),
     );
   };
 
@@ -230,15 +232,11 @@ export default function FolderSidebar({
               weight="fill"
               className={`w-5 h-5 flex-shrink-0 ${textColor}`}
             />
-            <span className="text-sm font-medium truncate">
-              {folder.name}
-            </span>
+            <span className="text-sm font-medium truncate">{folder.name}</span>
           </div>
 
           {hasChildren && isExpanded && (
-            <div>
-              {renderFolderTree(folder.id, depth + 1)}
-            </div>
+            <div>{renderFolderTree(folder.id, depth + 1)}</div>
           )}
         </div>
       );
@@ -293,9 +291,7 @@ export default function FolderSidebar({
             <span className="text-sm font-medium">Root</span>
           </div>
 
-          <div className="mt-2">
-            {renderFolderTree()}
-          </div>
+          <div className="mt-2">{renderFolderTree()}</div>
         </div>
       </div>
     </div>

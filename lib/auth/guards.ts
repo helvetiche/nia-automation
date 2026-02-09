@@ -8,7 +8,7 @@ interface AuthResult {
 }
 
 export async function requireAuth(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<{ error: NextResponse } | { user: AuthResult }> {
   const authHeader = request.headers.get("authorization");
 
@@ -16,7 +16,7 @@ export async function requireAuth(
     return {
       error: NextResponse.json(
         { error: "missing auth token" },
-        { status: 401 }
+        { status: 401 },
       ),
     };
   }
@@ -42,7 +42,7 @@ export async function requireAuth(
 }
 
 export async function requireOperator(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<{ error: NextResponse } | { user: AuthResult }> {
   const authResult = await requireAuth(request);
 
@@ -54,7 +54,7 @@ export async function requireOperator(
     return {
       error: NextResponse.json(
         { error: "operator role required" },
-        { status: 403 }
+        { status: 403 },
       ),
     };
   }

@@ -13,16 +13,13 @@ export function sanitizeBoolean(input: unknown): boolean {
   return Boolean(input);
 }
 
-export function sanitizeArray<T>(
-  input: unknown,
-  maxLength = 100
-): T[] {
+export function sanitizeArray<T>(input: unknown, maxLength = 100): T[] {
   if (!Array.isArray(input)) return [];
   return input.slice(0, maxLength) as T[];
 }
 
 export function validateRequired(
-  fields: Record<string, unknown>
+  fields: Record<string, unknown>,
 ): { valid: true } | { valid: false; missing: string[] } {
   const missing = Object.entries(fields)
     .filter(([, value]) => !value)

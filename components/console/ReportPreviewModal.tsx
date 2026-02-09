@@ -58,7 +58,7 @@ export default function ReportPreviewModal({
       icon={<FileXls weight="regular" className="w-5 h-5" />}
       maxWidth="4xl"
     >
-      <div className="p-6 space-y-4" style={{ fontFamily: 'Cambria, serif' }}>
+      <div className="p-6 space-y-4" style={{ fontFamily: "Cambria, serif" }}>
         <div className="border border-gray-300 p-3 bg-gray-100">
           <h3 className="text-sm font-bold text-center text-gray-900">
             {reportData.title}

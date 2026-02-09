@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
   const userId = authResult.user.uid;
 
   try {
-
     const folderId = request.nextUrl.searchParams.get("folderId");
     const limit = parseInt(request.nextUrl.searchParams.get("limit") || "50");
 
@@ -62,7 +61,6 @@ export async function DELETE(request: NextRequest) {
   const userId = authResult.user.uid;
 
   try {
-
     const pdfId = request.nextUrl.searchParams.get("id");
 
     if (!pdfId) {

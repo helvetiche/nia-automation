@@ -1,22 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/adminConfig";
-import { verifyOperator } from "@/lib/auth/middleware";
+import { requireOperator } from "@/lib/auth/guards";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const MAX_FILES_PER_UPLOAD = 20;
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireOperator(request);
+  if ("error" in authResult) return authResult.error;
+
+  const userId = authResult.user.uid;
+
   try {
     console.log("Upload request received");
-
-    const token = request.headers.get("authorization")?.split("Bearer ")[1];
-    if (!token) {
-      console.log("No authorization token provided");
-      return NextResponse.json({ error: "not authorized" }, { status: 401 });
-    }
-
-    const decodedToken = await verifyOperator(token);
-    const userId = decodedToken.uid;
     console.log("User authenticated:", userId);
 
     const formData = await request.formData();

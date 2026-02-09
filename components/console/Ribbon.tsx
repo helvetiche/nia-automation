@@ -6,19 +6,13 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/clientConfig";
 import { apiCall } from "@/lib/api/client";
 import Image from "next/image";
-import {
-  SignOut,
-  Gear,
-  Warning,
-} from "@phosphor-icons/react/dist/ssr";
+import { SignOut, Gear, Warning } from "@phosphor-icons/react/dist/ssr";
 
 interface RibbonProps {
   refreshTrigger?: number;
 }
 
-export default function Ribbon({
-  refreshTrigger,
-}: RibbonProps) {
+export default function Ribbon({ refreshTrigger }: RibbonProps) {
   const router = useRouter();
   const [stats, setStats] = useState<{
     totalInputTokens: number;
@@ -210,5 +204,3 @@ export default function Ribbon({
     </div>
   );
 }
-
-

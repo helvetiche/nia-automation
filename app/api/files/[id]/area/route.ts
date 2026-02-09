@@ -15,7 +15,10 @@ export async function PATCH(
     const { newArea, associationId } = await request.json();
 
     if (typeof newArea !== "number" || newArea < 0) {
-      return NextResponse.json({ error: "invalid area value" }, { status: 400 });
+      return NextResponse.json(
+        { error: "invalid area value" },
+        { status: 400 },
+      );
     }
 
     const db = adminDb();

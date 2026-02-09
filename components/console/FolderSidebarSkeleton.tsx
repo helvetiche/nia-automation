@@ -31,13 +31,19 @@ export default function FolderSidebarSkeleton() {
               <div className="h-3 w-24 bg-gray-200 rounded" />
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-2 rounded" style={{ paddingLeft: '28px' }}>
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded"
+              style={{ paddingLeft: "28px" }}
+            >
               <div className="w-4 h-4 bg-gray-200 rounded" />
               <div className="w-5 h-5 bg-gray-200 rounded" />
               <div className="h-3 w-32 bg-gray-200 rounded" />
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-2 rounded" style={{ paddingLeft: '44px' }}>
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded"
+              style={{ paddingLeft: "44px" }}
+            >
               <div className="w-4 h-4 bg-gray-200 rounded" />
               <div className="w-5 h-5 bg-gray-200 rounded" />
               <div className="h-3 w-28 bg-gray-200 rounded" />
@@ -49,7 +55,10 @@ export default function FolderSidebarSkeleton() {
               <div className="h-3 w-20 bg-gray-200 rounded" />
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-2 rounded" style={{ paddingLeft: '28px' }}>
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded"
+              style={{ paddingLeft: "28px" }}
+            >
               <div className="w-4 h-4 bg-gray-200 rounded" />
               <div className="w-5 h-5 bg-gray-200 rounded" />
               <div className="h-3 w-36 bg-gray-200 rounded" />
@@ -61,13 +70,19 @@ export default function FolderSidebarSkeleton() {
               <div className="h-3 w-24 bg-gray-200 rounded" />
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-2 rounded" style={{ paddingLeft: '28px' }}>
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded"
+              style={{ paddingLeft: "28px" }}
+            >
               <div className="w-4 h-4 bg-gray-200 rounded" />
               <div className="w-5 h-5 bg-gray-200 rounded" />
               <div className="h-3 w-28 bg-gray-200 rounded" />
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-2 rounded" style={{ paddingLeft: '28px' }}>
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded"
+              style={{ paddingLeft: "28px" }}
+            >
               <div className="w-4 h-4 bg-gray-200 rounded" />
               <div className="w-5 h-5 bg-gray-200 rounded" />
               <div className="h-3 w-32 bg-gray-200 rounded" />

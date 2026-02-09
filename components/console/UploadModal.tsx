@@ -260,10 +260,7 @@ export default function UploadModal({
         <div className="p-6 space-y-4">
           <div className="mb-6 flex items-center gap-3">
             <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-              <Sparkle
-                weight="fill"
-                className="w-6 h-6 text-emerald-600"
-              />
+              <Sparkle weight="fill" className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">

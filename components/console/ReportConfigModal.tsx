@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Modal from "../Modal";
-import { X, FileText, CloudSun, CloudRain, CalendarBlank } from "@phosphor-icons/react";
+import {
+  X,
+  FileText,
+  CloudSun,
+  CloudRain,
+  CalendarBlank,
+} from "@phosphor-icons/react";
 import { apiCall } from "@/lib/api/client";
 
 interface ReportConfigModalProps {
@@ -29,7 +35,9 @@ export default function ReportConfigModal({
   const [boldKeywords, setBoldKeywords] = useState("");
   const [capitalizeKeywords, setCapitalizeKeywords] = useState("");
   const [savedBoldKeywords, setSavedBoldKeywords] = useState<string[]>([]);
-  const [savedCapitalizeKeywords, setSavedCapitalizeKeywords] = useState<string[]>([]);
+  const [savedCapitalizeKeywords, setSavedCapitalizeKeywords] = useState<
+    string[]
+  >([]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -135,27 +143,28 @@ export default function ReportConfigModal({
                   WET
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Cropping season type
-              </p>
+              <p className="text-xs text-gray-500 mt-1">Cropping season type</p>
             </div>
 
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <CalendarBlank weight="duotone" className="w-4 h-4 text-gray-600" />
+                <CalendarBlank
+                  weight="duotone"
+                  className="w-4 h-4 text-gray-600"
+                />
                 Year
               </label>
               <input
                 type="number"
                 value={year}
-                onChange={(e) => setYear(parseInt(e.target.value) || currentYear)}
+                onChange={(e) =>
+                  setYear(parseInt(e.target.value) || currentYear)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 min={2020}
                 max={2100}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Report year
-              </p>
+              <p className="text-xs text-gray-500 mt-1">Report year</p>
             </div>
           </div>
 
@@ -181,7 +190,9 @@ export default function ReportConfigModal({
 
                     if (boldList.length === 0) return;
 
-                    const updated = [...new Set([...savedBoldKeywords, ...boldList])];
+                    const updated = [
+                      ...new Set([...savedBoldKeywords, ...boldList]),
+                    ];
 
                     try {
                       await apiCall("/api/reports/settings", {
@@ -264,7 +275,12 @@ export default function ReportConfigModal({
 
                     if (capitalizeList.length === 0) return;
 
-                    const updated = [...new Set([...savedCapitalizeKeywords, ...capitalizeList])];
+                    const updated = [
+                      ...new Set([
+                        ...savedCapitalizeKeywords,
+                        ...capitalizeList,
+                      ]),
+                    ];
 
                     try {
                       await apiCall("/api/reports/settings", {

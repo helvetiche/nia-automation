@@ -188,7 +188,18 @@ export default function FileList({
     currentValue: number;
   } | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editingName, setEditingName] = useState<{
+    fileId: string;
+    associationId?: string;
+    currentValue: string;
+  } | null>(null);
+  const [editNameValue, setEditNameValue] = useState("");
+  const [localFiles, setLocalFiles] = useState<PdfFile[]>(files);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    setLocalFiles(files);
+  }, [files]);
 
   useEffect(() => {
     if (scanning.length > 0 || currentlyScanning) {
@@ -592,8 +603,75 @@ export default function FileList({
     }
   };
 
+  const startEditingName = (
+    fileId: string,
+    currentValue: string,
+    associationId?: string,
+  ) => {
+    setEditingName({ fileId, associationId, currentValue });
+    setEditNameValue(currentValue);
+  };
+
+  const cancelEditingName = () => {
+    setEditingName(null);
+    setEditNameValue("");
+  };
+
+  const saveNameEdit = async () => {
+    if (!editingName) return;
+
+    const newName = editNameValue.trim();
+    if (newName.length === 0) {
+      showToast("error", "Invalid Name", "Name cannot be empty");
+      return;
+    }
+
+    try {
+      const response = await apiCall(
+        `/api/files/${editingName.fileId}/rename`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            newName,
+            associationId: editingName.associationId,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        setLocalFiles((prevFiles) =>
+          prevFiles.map((file) => {
+            if (file.id === editingName.fileId) {
+              if (editingName.associationId) {
+                return {
+                  ...file,
+                  summaryData: file.summaryData?.map((assoc) =>
+                    assoc.id === editingName.associationId
+                      ? { ...assoc, name: newName }
+                      : assoc,
+                  ),
+                };
+              } else {
+                return { ...file, name: newName };
+              }
+            }
+            return file;
+          }),
+        );
+        showToast("success", "Name Updated", "Name has been updated");
+        cancelEditingName();
+      } else {
+        showToast("error", "Update failed", "Could not update name");
+      }
+    } catch (error) {
+      console.error("name update failed:", error);
+      showToast("error", "Update failed", "Could not update name");
+    }
+  };
+
   const visibleFolders = folders.filter((f) => !deletedFolders.includes(f.id));
-  const summaryFiles = files.filter(
+  const summaryFiles = localFiles.filter(
     (file) =>
       !movedPdfs[file.id] &&
       !deletedPdfs.includes(file.id) &&
@@ -601,7 +679,7 @@ export default function FileList({
       file.summaryData &&
       file.summaryData.length > 0,
   );
-  const regularFiles = files.filter(
+  const regularFiles = localFiles.filter(
     (file) =>
       !movedPdfs[file.id] &&
       !deletedPdfs.includes(file.id) &&
@@ -692,149 +770,148 @@ export default function FileList({
             </thead>
             <tbody className="divide-y divide-gray-200">
               {paginatedFolders.map((folder) => {
-                  const IconComponent = (ICON_MAP[folder.icon || "Folder"] ||
-                    FolderIcon) as React.ComponentType<{
-                    weight?: IconWeight;
-                    className?: string;
-                  }>;
-                  const colorClass =
-                    COLOR_MAP[folder.color || "blue"] || "bg-blue-500";
-                  const textColor =
-                    TEXT_COLOR_MAP[folder.color || "blue"] || "text-blue-700";
-                  const folderNoticeRef = {
-                    current: null,
-                  } as React.RefObject<HTMLButtonElement | null>;
+                const IconComponent = (ICON_MAP[folder.icon || "Folder"] ||
+                  FolderIcon) as React.ComponentType<{
+                  weight?: IconWeight;
+                  className?: string;
+                }>;
+                const colorClass =
+                  COLOR_MAP[folder.color || "blue"] || "bg-blue-500";
+                const textColor =
+                  TEXT_COLOR_MAP[folder.color || "blue"] || "text-blue-700";
+                const folderNoticeRef = {
+                  current: null,
+                } as React.RefObject<HTMLButtonElement | null>;
 
-                  const folderTotals = {
-                    totalArea: folder.totalArea || 0,
-                    totalIrrigatedArea: folder.totalIrrigatedArea || 0,
-                    totalPlantedArea: folder.totalPlantedArea || 0,
-                  };
+                const folderTotals = {
+                  totalArea: folder.totalArea || 0,
+                  totalIrrigatedArea: folder.totalIrrigatedArea || 0,
+                  totalPlantedArea: folder.totalPlantedArea || 0,
+                };
 
-                  const hasNotice =
-                    folder.notice && folder.notice.trim().length > 0;
-                  const rowClassName = hasNotice
-                    ? `transition bg-gradient-to-l from-orange-100/60 to-transparent hover:from-orange-200/80 hover:to-transparent`
-                    : `transition ${GRADIENT_HOVER_MAP[folder.color || "blue"] || "hover:bg-gradient-to-l hover:from-blue-500/40 hover:to-transparent"}`;
+                const hasNotice =
+                  folder.notice && folder.notice.trim().length > 0;
+                const rowClassName = hasNotice
+                  ? `transition bg-gradient-to-l from-orange-100/60 to-transparent hover:from-orange-200/80 hover:to-transparent`
+                  : `transition ${GRADIENT_HOVER_MAP[folder.color || "blue"] || "hover:bg-gradient-to-l hover:from-blue-500/40 hover:to-transparent"}`;
 
-                  return (
-                    <tr
-                      key={folder.id}
-                      className={`${rowClassName} cursor-pointer`}
-                      onDoubleClick={() => onSelectFolder(folder.id)}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-8 h-8 rounded ${colorClass} flex items-center justify-center flex-shrink-0`}
-                          >
-                            <IconComponent
-                              weight="regular"
-                              className="w-4 h-4 text-white"
-                            />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {folder.name}
-                            </p>
-                            {folder.description && (
-                              <p className="text-xs text-gray-500 font-mono">
-                                {folder.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-gray-900">
-                          {folderTotals.totalArea > 0
-                            ? folderTotals.totalArea.toFixed(2)
-                            : "--"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Tooltip
-                            title={hasNotice ? "View Notice" : "Add Notice"}
-                            description={
-                              hasNotice
-                                ? folder.notice || ""
-                                : "Add a notice to this folder"
-                            }
-                            icon={<Flag weight="regular" className="w-4 h-4" />}
-                          >
-                            <button
-                              ref={folderNoticeRef}
-                              onClick={() =>
-                                openNoticePopover(
-                                  "folder",
-                                  folder.id,
-                                  folder.notice || "",
-                                  folderNoticeRef,
-                                )
-                              }
-                              className={`p-1.5 rounded hover:bg-gray-100 transition ${hasNotice ? "text-orange-500" : textColor}`}
-                            >
-                              <Flag
-                                weight={hasNotice ? "fill" : "regular"}
-                                className="w-4 h-4"
-                              />
-                            </button>
-                          </Tooltip>
-                          <RowActionsMenu
-                            accentColor={folder.color || "blue"}
-                            actions={[
-                              {
-                                icon: (
-                                  <ArrowsClockwise
-                                    weight="regular"
-                                    className="w-4 h-4"
-                                  />
-                                ),
-                                label: "Sync Totals",
-                                onClick: () =>
-                                  syncFolder(folder.id, folder.name),
-                                disabled: syncingFolders.has(folder.id),
-                              },
-                              {
-                                icon: (
-                                  <FolderOpen
-                                    weight="regular"
-                                    className="w-4 h-4"
-                                  />
-                                ),
-                                label: "Open Folder",
-                                onClick: () => onSelectFolder(folder.id),
-                              },
-                              {
-                                icon: (
-                                  <ArrowsDownUp
-                                    weight="regular"
-                                    className="w-4 h-4"
-                                  />
-                                ),
-                                label: "Move Folder",
-                                onClick: () => setMoveModal(folder),
-                              },
-                              {
-                                icon: (
-                                  <Trash weight="regular" className="w-4 h-4" />
-                                ),
-                                label: "Delete Folder",
-                                onClick: () =>
-                                  setDeleteModal({
-                                    folderId: folder.id,
-                                    folderName: folder.name,
-                                  }),
-                                color: "text-red-600 hover:bg-red-50",
-                              },
-                            ]}
+                return (
+                  <tr
+                    key={folder.id}
+                    className={`${rowClassName} cursor-pointer`}
+                    onDoubleClick={() => onSelectFolder(folder.id)}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded ${colorClass} flex items-center justify-center flex-shrink-0`}
+                        >
+                          <IconComponent
+                            weight="regular"
+                            className="w-4 h-4 text-white"
                           />
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {folder.name}
+                          </p>
+                          {folder.description && (
+                            <p className="text-xs text-gray-500 font-mono">
+                              {folder.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-gray-900">
+                        {folderTotals.totalArea > 0
+                          ? folderTotals.totalArea.toFixed(2)
+                          : "--"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip
+                          title={hasNotice ? "View Notice" : "Add Notice"}
+                          description={
+                            hasNotice
+                              ? folder.notice || ""
+                              : "Add a notice to this folder"
+                          }
+                          icon={<Flag weight="regular" className="w-4 h-4" />}
+                        >
+                          <button
+                            ref={folderNoticeRef}
+                            onClick={() =>
+                              openNoticePopover(
+                                "folder",
+                                folder.id,
+                                folder.notice || "",
+                                folderNoticeRef,
+                              )
+                            }
+                            className={`p-1.5 rounded hover:bg-gray-100 transition ${hasNotice ? "text-orange-500" : textColor}`}
+                          >
+                            <Flag
+                              weight={hasNotice ? "fill" : "regular"}
+                              className="w-4 h-4"
+                            />
+                          </button>
+                        </Tooltip>
+                        <RowActionsMenu
+                          accentColor={folder.color || "blue"}
+                          actions={[
+                            {
+                              icon: (
+                                <ArrowsClockwise
+                                  weight="regular"
+                                  className="w-4 h-4"
+                                />
+                              ),
+                              label: "Sync Totals",
+                              onClick: () => syncFolder(folder.id, folder.name),
+                              disabled: syncingFolders.has(folder.id),
+                            },
+                            {
+                              icon: (
+                                <FolderOpen
+                                  weight="regular"
+                                  className="w-4 h-4"
+                                />
+                              ),
+                              label: "Open Folder",
+                              onClick: () => onSelectFolder(folder.id),
+                            },
+                            {
+                              icon: (
+                                <ArrowsDownUp
+                                  weight="regular"
+                                  className="w-4 h-4"
+                                />
+                              ),
+                              label: "Move Folder",
+                              onClick: () => setMoveModal(folder),
+                            },
+                            {
+                              icon: (
+                                <Trash weight="regular" className="w-4 h-4" />
+                              ),
+                              label: "Delete Folder",
+                              onClick: () =>
+                                setDeleteModal({
+                                  folderId: folder.id,
+                                  folderName: folder.name,
+                                }),
+                              color: "text-red-600 hover:bg-red-50",
+                            },
+                          ]}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {renderPagination(folderPage, folderTotalPages, setFolderPage)}
@@ -959,7 +1036,51 @@ export default function FileList({
                             className="w-4 h-4 text-white"
                           />
                         </div>
-                        <p className="font-medium text-gray-900">{file.name}</p>
+                        {editingName?.fileId === file.id &&
+                        !editingName.associationId ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editNameValue}
+                              onChange={(e) => setEditNameValue(e.target.value)}
+                              className="px-2 py-1 text-sm font-medium border border-emerald-500 rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveNameEdit();
+                                if (e.key === "Escape") cancelEditingName();
+                              }}
+                            />
+                            <button
+                              onClick={saveNameEdit}
+                              className="p-1 rounded hover:bg-emerald-100 transition text-emerald-600"
+                            >
+                              <Check weight="bold" className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={cancelEditingName}
+                              className="p-1 rounded hover:bg-gray-100 transition text-gray-600"
+                            >
+                              <XIcon weight="bold" className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">
+                              {file.name}
+                            </p>
+                            <button
+                              onClick={() =>
+                                startEditingName(file.id, file.name)
+                              }
+                              className={`p-1 rounded hover:bg-gray-100 transition ${textColor}`}
+                            >
+                              <PencilSimple
+                                weight="regular"
+                                className="w-4 h-4"
+                              />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -1200,9 +1321,64 @@ export default function FileList({
                                     }`}
                                   />
                                 </div>
-                                <p className="text-sm font-medium text-gray-700">
-                                  {association.name}
-                                </p>
+                                {editingName?.fileId === file.id &&
+                                editingName.associationId === association.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={editNameValue}
+                                      onChange={(e) =>
+                                        setEditNameValue(e.target.value)
+                                      }
+                                      className="px-2 py-1 text-sm font-medium border border-emerald-500 rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") saveNameEdit();
+                                        if (e.key === "Escape")
+                                          cancelEditingName();
+                                      }}
+                                    />
+                                    <button
+                                      onClick={saveNameEdit}
+                                      className="p-0.5 rounded hover:bg-emerald-100 transition text-emerald-600"
+                                    >
+                                      <Check
+                                        weight="bold"
+                                        className="w-3 h-3"
+                                      />
+                                    </button>
+                                    <button
+                                      onClick={cancelEditingName}
+                                      className="p-0.5 rounded hover:bg-gray-100 transition text-gray-600"
+                                    >
+                                      <XIcon
+                                        weight="bold"
+                                        className="w-3 h-3"
+                                      />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium text-gray-700">
+                                      {association.name}
+                                    </p>
+                                    <button
+                                      onClick={() =>
+                                        startEditingName(
+                                          file.id,
+                                          association.name,
+                                          association.id,
+                                        )
+                                      }
+                                      className={`p-0.5 rounded hover:bg-gray-100 transition ${textColor}`}
+                                    >
+                                      <PencilSimple
+                                        weight="regular"
+                                        className="w-3 h-3"
+                                      />
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </td>
                             <td className="px-4 py-2">
@@ -1256,7 +1432,9 @@ export default function FileList({
                                       type="number"
                                       step="0.01"
                                       value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onChange={(e) =>
+                                        setEditValue(e.target.value)
+                                      }
                                       className="w-20 px-2 py-1 text-sm font-mono border border-emerald-500 rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                       autoFocus
                                       onKeyDown={(e) => {
@@ -1269,13 +1447,19 @@ export default function FileList({
                                       onClick={saveAreaEdit}
                                       className="p-0.5 rounded hover:bg-emerald-100 transition text-emerald-600"
                                     >
-                                      <Check weight="bold" className="w-3 h-3" />
+                                      <Check
+                                        weight="bold"
+                                        className="w-3 h-3"
+                                      />
                                     </button>
                                     <button
                                       onClick={cancelEditingArea}
                                       className="p-0.5 rounded hover:bg-gray-100 transition text-gray-600"
                                     >
-                                      <XIcon weight="bold" className="w-3 h-3" />
+                                      <XIcon
+                                        weight="bold"
+                                        className="w-3 h-3"
+                                      />
                                     </button>
                                   </>
                                 ) : (

@@ -7,22 +7,22 @@ import {
 
 function capitalizeAssociation(name: string): string {
   const exceptions = ["NON-IA", "NON - IA", "NON IA", "NONIA"];
-  
+
   const upperName = name.toUpperCase();
-  if (exceptions.some(exc => upperName.includes(exc))) {
+  if (exceptions.some((exc) => upperName.includes(exc))) {
     return name.toUpperCase();
   }
-  
+
   return name
     .toLowerCase()
     .split(/(\s+|-)/g)
-    .map(part => {
-      if (part === '-' || part.trim() === '') {
+    .map((part) => {
+      if (part === "-" || part.trim() === "") {
         return part;
       }
       return part.charAt(0).toUpperCase() + part.slice(1);
     })
-    .join('');
+    .join("");
 }
 
 export async function GET(request: NextRequest) {
@@ -36,10 +36,15 @@ export async function GET(request: NextRequest) {
     const folderIds = request.nextUrl.searchParams.get("folderIds");
     const fileIds = request.nextUrl.searchParams.get("fileIds");
     const templateId = request.nextUrl.searchParams.get("templateId");
-    const title = request.nextUrl.searchParams.get("title") || "LIST OF IRRIGATED AND PLANTED AREA (LIPA)";
-    const season = request.nextUrl.searchParams.get("season") || "DRY CROPPING SEASON 2025";
-    const boldKeywordsParam = request.nextUrl.searchParams.get("boldKeywords") || "";
-    const capitalizeKeywordsParam = request.nextUrl.searchParams.get("capitalizeKeywords") || "";
+    const title =
+      request.nextUrl.searchParams.get("title") ||
+      "LIST OF IRRIGATED AND PLANTED AREA (LIPA)";
+    const season =
+      request.nextUrl.searchParams.get("season") || "DRY CROPPING SEASON 2025";
+    const boldKeywordsParam =
+      request.nextUrl.searchParams.get("boldKeywords") || "";
+    const capitalizeKeywordsParam =
+      request.nextUrl.searchParams.get("capitalizeKeywords") || "";
 
     const boldKeywords = boldKeywordsParam
       .split(",")

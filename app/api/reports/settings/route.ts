@@ -14,10 +14,7 @@ export async function GET(request: NextRequest) {
     const userId = decodedToken.uid;
 
     const db = adminDb();
-    const settingsDoc = await db
-      .collection("reportSettings")
-      .doc(userId)
-      .get();
+    const settingsDoc = await db.collection("reportSettings").doc(userId).get();
 
     if (!settingsDoc.exists) {
       return NextResponse.json({
@@ -29,10 +26,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(settingsDoc.data());
   } catch (error) {
     console.error("fetch settings failed:", error);
-    return NextResponse.json(
-      { error: "server is broken" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "server is broken" }, { status: 500 });
   }
 }
 
@@ -72,9 +66,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("save settings failed:", error);
-    return NextResponse.json(
-      { error: "server is broken" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "server is broken" }, { status: 500 });
   }
 }

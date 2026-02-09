@@ -150,7 +150,8 @@ export default function PdfPageModal({
 
   const canGoNext =
     memoizedParsedPages.length > 0
-      ? memoizedParsedPages.indexOf(currentPage) < memoizedParsedPages.length - 1
+      ? memoizedParsedPages.indexOf(currentPage) <
+        memoizedParsedPages.length - 1
       : currentPage < numPages;
 
   return (
@@ -188,8 +189,8 @@ export default function PdfPageModal({
               Page {currentPage} of {numPages}
               {memoizedParsedPages.length > 0 && (
                 <span className="text-gray-500 ml-1">
-                  ({memoizedParsedPages.indexOf(currentPage) + 1}/{memoizedParsedPages.length}{" "}
-                  scanned)
+                  ({memoizedParsedPages.indexOf(currentPage) + 1}/
+                  {memoizedParsedPages.length} scanned)
                 </span>
               )}
             </span>

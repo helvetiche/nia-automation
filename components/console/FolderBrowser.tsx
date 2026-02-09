@@ -11,7 +11,6 @@ import UploadModal from "./UploadModal";
 import UploadTemplateModal from "./UploadTemplateModal";
 import { apiCall } from "@/lib/api/client";
 
-
 interface FolderBrowserProps {
   viewMode: "grid" | "table";
   onViewModeChange: (mode: "grid" | "table") => void;
@@ -212,9 +211,7 @@ export default function FolderBrowser({
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      <Ribbon
-        refreshTrigger={refreshTrigger}
-      />
+      <Ribbon refreshTrigger={refreshTrigger} />
 
       <div className="flex flex-1 overflow-hidden">
         {loading && folders.length === 0 ? (

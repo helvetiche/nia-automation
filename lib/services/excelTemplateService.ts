@@ -18,10 +18,12 @@ interface ReportData {
   divisions: DivisionData[];
 }
 
-export async function generateLIPAReport(data: ReportData & {
-  boldKeywords?: string[];
-  capitalizeKeywords?: string[];
-}): Promise<Buffer> {
+export async function generateLIPAReport(
+  data: ReportData & {
+    boldKeywords?: string[];
+    capitalizeKeywords?: string[];
+  },
+): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Sheet1");
 
@@ -148,14 +150,14 @@ export async function generateLIPAReport(data: ReportData & {
   data.divisions.forEach((division) => {
     const cleanName = division.divisionName.replace(/\.pdf$/i, "");
     const divisionStartRow = worksheet.rowCount + 1;
-    
+
     const divisionRowCount = 1 + division.irrigators.length + 1 + 1;
-    
+
     if (currentRow + divisionRowCount > ROWS_PER_PAGE) {
       worksheet.getRow(divisionStartRow).addPageBreak();
       currentRow = 0;
     }
-    
+
     const divisionRow = worksheet.addRow([cleanName]);
     divisionRow.getCell(1).font = { name: "Cambria", size: 11, bold: true };
     divisionRow.getCell(1).fill = {
@@ -185,17 +187,20 @@ export async function generateLIPAReport(data: ReportData & {
 
     division.irrigators.forEach((irrigator) => {
       let transformedName = applyTextTransformations(irrigator.name);
-      
-      transformedName = transformedName.replace(/\(([^)]+)\)/g, (match, content) => {
-        return `(${content.toUpperCase()})`;
-      });
-      
+
+      transformedName = transformedName.replace(
+        /\(([^)]+)\)/g,
+        (match, content) => {
+          return `(${content.toUpperCase()})`;
+        },
+      );
+
       const row = worksheet.addRow([
         irrigator.no,
         transformedName,
         irrigator.totalPlantedArea,
       ]);
-      
+
       row.font = { name: "Cambria", size: 11 };
       row.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
       row.getCell(3).numFmt = "#,##0.00";
@@ -225,7 +230,7 @@ export async function generateLIPAReport(data: ReportData & {
     grandTotal += division.total;
 
     worksheet.addRow([]);
-    
+
     currentRow += divisionRowCount;
   });
 
