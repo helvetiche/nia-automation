@@ -190,12 +190,22 @@ export async function GET(request: NextRequest) {
 
     const buffer = await generateLIPAReport(reportData);
 
+    const seasonUpper = season.toUpperCase();
+    const isDry = seasonUpper.includes("DRY");
+    const isWet = seasonUpper.includes("WET");
+    const seasonType = isDry ? "DRY" : isWet ? "WET" : "SEASON";
+    
+    const yearMatch = season.match(/\d{4}/);
+    const year = yearMatch ? yearMatch[0] : new Date().getFullYear();
+    
+    const filename = `LIPA ${seasonType} ${year}.xlsx`;
+
     return new NextResponse(Buffer.from(buffer), {
       status: 200,
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="LIPA_Report_${Date.now()}.xlsx"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
