@@ -2,13 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["canvas"],
-  turbopack: {},
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "50mb",
-    },
-    proxyClientMaxBodySize: "50mb",
-  },
   async headers() {
     return [
       {
