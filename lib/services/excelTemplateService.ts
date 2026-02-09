@@ -18,7 +18,10 @@ interface ReportData {
   divisions: DivisionData[];
 }
 
-export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
+export async function generateLIPAReport(data: ReportData & {
+  boldKeywords?: string[];
+  capitalizeKeywords?: string[];
+}): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Sheet1");
 
@@ -48,7 +51,29 @@ export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
     },
   ];
 
-  const titleRow = worksheet.addRow([data.title]);
+  const applyTextTransformations = (text: string): string => {
+    let processedText = text;
+    const uppercaseKeywords = data.boldKeywords || [];
+    const capitalizeKeywords = data.capitalizeKeywords || [];
+
+    for (const keyword of uppercaseKeywords) {
+      const regex = new RegExp(keyword, "gi");
+      processedText = processedText.replace(regex, keyword.toUpperCase());
+    }
+
+    for (const keyword of capitalizeKeywords) {
+      const regex = new RegExp(keyword, "gi");
+      processedText = processedText.replace(regex, keyword.toUpperCase());
+    }
+
+    return processedText;
+  };
+
+  const titleText = applyTextTransformations(data.title);
+  const seasonText = applyTextTransformations(data.season);
+
+  const titleRow = worksheet.addRow([titleText]);
+  titleRow.getCell(1).value = titleText;
   titleRow.getCell(1).font = { name: "Cambria", size: 11, bold: true };
   titleRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
   titleRow.getCell(1).fill = {
@@ -58,7 +83,8 @@ export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
   };
   worksheet.mergeCells("A1:C1");
 
-  const seasonRow = worksheet.addRow([data.season]);
+  const seasonRow = worksheet.addRow([seasonText]);
+  seasonRow.getCell(1).value = seasonText;
   seasonRow.getCell(1).font = { name: "Cambria", size: 11, bold: true };
   seasonRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
   seasonRow.getCell(1).fill = {
@@ -158,13 +184,14 @@ export async function generateLIPAReport(data: ReportData): Promise<Buffer> {
     worksheet.mergeCells(`A${divisionRow.number}:C${divisionRow.number}`);
 
     division.irrigators.forEach((irrigator) => {
+      const transformedName = applyTextTransformations(irrigator.name);
       const row = worksheet.addRow([
         irrigator.no,
-        irrigator.name,
+        transformedName,
         irrigator.totalPlantedArea,
       ]);
       row.font = { name: "Cambria", size: 11 };
-      row.getCell(1).alignment = { horizontal: "left" };
+      row.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
       row.getCell(3).numFmt = "#,##0.00";
       row.eachCell((cell) => {
         cell.border = {

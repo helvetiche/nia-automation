@@ -64,3 +64,11 @@ export interface Template {
   uploadedAt: number;
   type: string;
 }
+
+export interface ReportSettings {
+  id: string;
+  userId: string;
+  boldKeywords: string[];
+  capitalizeKeywords: string[];
+  updatedAt: number;
+}

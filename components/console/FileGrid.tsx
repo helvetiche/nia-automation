@@ -768,6 +768,8 @@ export default function FileGrid({
     title: string;
     season: string;
     year: number;
+    boldKeywords: string[];
+    capitalizeKeywords: string[];
   }) => {
     const selectedIds = Array.from(selectedItems);
     if (selectedIds.length === 0) {
@@ -791,6 +793,14 @@ export default function FileGrid({
     }
 
     url += `&title=${encodeURIComponent(config.title)}&season=${encodeURIComponent(config.season)}`;
+
+    if (config.boldKeywords.length > 0) {
+      url += `&boldKeywords=${encodeURIComponent(config.boldKeywords.join(","))}`;
+    }
+
+    if (config.capitalizeKeywords.length > 0) {
+      url += `&capitalizeKeywords=${encodeURIComponent(config.capitalizeKeywords.join(","))}`;
+    }
 
     try {
       showToast("info", "Generating Report", "Creating your Excel file...");

@@ -33,6 +33,17 @@ export async function GET(request: NextRequest) {
     const templateId = request.nextUrl.searchParams.get("templateId");
     const title = request.nextUrl.searchParams.get("title") || "LIST OF IRRIGATED AND PLANTED AREA (LIPA)";
     const season = request.nextUrl.searchParams.get("season") || "DRY CROPPING SEASON 2025";
+    const boldKeywordsParam = request.nextUrl.searchParams.get("boldKeywords") || "";
+    const capitalizeKeywordsParam = request.nextUrl.searchParams.get("capitalizeKeywords") || "";
+
+    const boldKeywords = boldKeywordsParam
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
+    const capitalizeKeywords = capitalizeKeywordsParam
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
 
     if (!folderId && !folderIds && !fileIds) {
       return NextResponse.json(
@@ -163,6 +174,8 @@ export async function GET(request: NextRequest) {
       title: templateData?.title || title,
       season: templateData?.season || season,
       divisions: allDivisions,
+      boldKeywords,
+      capitalizeKeywords,
     };
 
     const buffer = await generateLIPAReport(reportData);
