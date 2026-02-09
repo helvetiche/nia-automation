@@ -59,6 +59,8 @@ interface FileGridProps {
   viewMode: "grid" | "table";
   onViewModeChange: (mode: "grid" | "table") => void;
   loading?: boolean;
+  currentlyScanning: string | null;
+  estimatedTimeRemaining: number;
 }
 
 const ICON_MAP: Record<string, React.ComponentType> = {
@@ -158,6 +160,8 @@ export default function FileGrid({
   viewMode,
   onViewModeChange,
   loading = false,
+  currentlyScanning,
+  estimatedTimeRemaining,
 }: FileGridProps) {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -670,6 +674,8 @@ export default function FileGrid({
           onToggleSelectPdf={(id) => toggleSelectItem(id)}
           onToggleSelectAllPdfs={(ids) => toggleSelectAllItems(ids)}
           loading={loading}
+          currentlyScanning={currentlyScanning}
+          estimatedTimeRemaining={estimatedTimeRemaining}
         />
       ) : loading ? (
         <FileGridSkeleton />

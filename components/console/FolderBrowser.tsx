@@ -40,6 +40,8 @@ export default function FolderBrowser({
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [allFiles, setAllFiles] = useState<PdfFile[]>([]);
+  const [currentlyScanning] = useState<string | null>(null);
+  const [estimatedTimeRemaining] = useState(0);
 
   const loadFolders = async () => {
     try {
@@ -239,6 +241,8 @@ export default function FolderBrowser({
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
           loading={loading}
+          currentlyScanning={currentlyScanning}
+          estimatedTimeRemaining={estimatedTimeRemaining}
         />
       </div>
 
