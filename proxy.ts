@@ -16,15 +16,15 @@ export function proxy(request: NextRequest) {
     "max-age=31536000; includeSubDomains",
   );
 
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https: 'unsafe-inline';
-    style-src 'self' 'unsafe-inline';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.googleapis.com https://www.gstatic.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' blob: data: https:;
-    font-src 'self';
-    connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net wss://*.firebaseio.com;
+    font-src 'self' data: https://fonts.gstatic.com;
+    connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.firebaseio.com;
     worker-src 'self' blob:;
+    frame-src 'self' https://*.firebaseapp.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
