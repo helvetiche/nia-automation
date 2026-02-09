@@ -1,0 +1,12 @@
+*.ts linguist-detectable=true linguist-language=TypeScript
+*.tsx linguist-detectable=true linguist-language=TypeScript
+*.js linguist-detectable=false
+*.mjs linguist-detectable=false
+*.cjs linguist-detectable=false
+
+.next/** linguist-generated=true
+node_modules/** linguist-vendored=true
+public/** linguist-documentation=true
+*.json linguist-documentation=true
+*.md linguist-documentation=true
+*.css linguist-documentation=true
