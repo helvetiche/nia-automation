@@ -84,6 +84,7 @@ export default function Home() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-600 focus:border-transparent outline-none transition text-sm"
                 placeholder="your.email@example.com"
               />
@@ -102,6 +103,7 @@ export default function Home() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-600 focus:border-transparent outline-none transition text-sm"
                 placeholder="Enter your password"
               />
