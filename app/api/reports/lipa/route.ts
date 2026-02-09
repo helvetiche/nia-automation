@@ -15,9 +15,14 @@ function capitalizeAssociation(name: string): string {
   
   return name
     .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+    .split(/(\s+|-)/g)
+    .map(part => {
+      if (part === '-' || part.trim() === '') {
+        return part;
+      }
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join('');
 }
 
 export async function GET(request: NextRequest) {

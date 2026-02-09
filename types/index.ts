@@ -22,7 +22,7 @@ export interface PdfFile {
   uploadedAt: number;
   scannedAt?: number;
   pageCount?: number;
-  storageUrl: string;
+  fileSize?: number;
   userId: string;
   extractedData?: PdfPage[];
   summaryData?: SummaryData[];

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminStorage, adminDb } from "@/lib/firebase/adminConfig";
+import { adminDb } from "@/lib/firebase/adminConfig";
 import { verifyOperator } from "@/lib/auth/middleware";
 
 export async function GET(
@@ -30,18 +30,10 @@ export async function GET(
       return NextResponse.json({ error: "not authorized" }, { status: 403 });
     }
 
-    const bucket = adminStorage().bucket();
-    const file = bucket.file(pdfData.storagePath);
-
-    const [fileBuffer] = await file.download();
-
-    return new NextResponse(new Uint8Array(fileBuffer), {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Length": fileBuffer.length.toString(),
-        "Cache-Control": "public, max-age=3600",
-      },
-    });
+    return NextResponse.json(
+      { error: "pdf files are not stored, only extracted data is available" },
+      { status: 410 },
+    );
   } catch (error) {
     console.error("PDF serve error:", error);
     return NextResponse.json({ error: "server is broken" }, { status: 500 });

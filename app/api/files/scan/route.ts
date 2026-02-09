@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb, adminStorage } from "@/lib/firebase/adminConfig";
+import { adminDb } from "@/lib/firebase/adminConfig";
 import { verifyOperator } from "@/lib/auth/middleware";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Folder, PdfFile } from "@/types";
@@ -19,14 +19,15 @@ export async function POST(request: NextRequest) {
     const userId = decodedToken.uid;
     console.log("User ID:", userId);
 
-    const {
-      pdfId,
-      scanType = "summary",
-      pageNumbers,
-      displayName,
-    } = await request.json();
+    const formData = await request.formData();
+    const pdfFile = formData.get("pdfFile") as File | null;
+    const pdfId = formData.get("pdfId") as string | null;
+    const scanType = (formData.get("scanType") as string) || "summary";
+    const pageNumbers = formData.get("pageNumbers") as string | null;
+    const displayName = formData.get("displayName") as string | null;
+
     const calculationMethod = "quick-final";
-    const aiModel = "gemini-2.5-flash-lite";
+    const aiModel = process.env.AI_MODEL || "gemini-2.5-flash-lite";
 
     console.log("PDF ID:", pdfId);
     console.log("Scan Type:", scanType);
@@ -34,10 +35,16 @@ export async function POST(request: NextRequest) {
     console.log("Display Name:", displayName);
     console.log("Calculation Method:", calculationMethod);
     console.log("AI Model:", aiModel);
+    console.log("PDF File provided:", !!pdfFile);
 
     if (!pdfId) {
       console.log("ERROR: No PDF ID provided");
       return NextResponse.json({ error: "pdf id required" }, { status: 400 });
+    }
+
+    if (!pdfFile) {
+      console.log("ERROR: No PDF file provided");
+      return NextResponse.json({ error: "pdf file required" }, { status: 400 });
     }
 
     console.log("Fetching PDF document from Firestore...");
@@ -50,7 +57,6 @@ export async function POST(request: NextRequest) {
     const pdfData = pdfDoc.data();
     console.log("PDF Data:", {
       name: pdfData?.name,
-      storagePath: pdfData?.storagePath,
       status: pdfData?.status,
     });
 
@@ -74,12 +80,9 @@ export async function POST(request: NextRequest) {
       console.log("Document reset complete");
     }
 
-    console.log("Downloading PDF from Firebase Storage...");
-    const bucket = adminStorage().bucket();
-    const file = bucket.file(pdfData.storagePath);
-
-    const [fileBuffer] = await file.download();
-    console.log("PDF downloaded, size:", fileBuffer.length, "bytes");
+    console.log("Reading PDF file from request...");
+    const fileBuffer = Buffer.from(await pdfFile.arrayBuffer());
+    console.log("PDF file read, size:", fileBuffer.length, "bytes");
 
     const base64Pdf = fileBuffer.toString("base64");
     console.log("PDF converted to base64, length:", base64Pdf.length);
@@ -87,13 +90,12 @@ export async function POST(request: NextRequest) {
     console.log("Initializing model:", aiModel);
     const model = genAI.getGenerativeModel({ model: aiModel });
 
-    const modelPricing = {
-      "gemini-2.5-flash-lite": { input: 0.15, output: 1.25 },
-    };
-
-    const pricing = modelPricing["gemini-2.5-flash-lite"];
-    const inputPricePerMillion = pricing.input;
-    const outputPricePerMillion = pricing.output;
+    const inputPricePerMillion = parseFloat(
+      process.env.AI_INPUT_PRICE_PER_MILLION || "0.15",
+    );
+    const outputPricePerMillion = parseFloat(
+      process.env.AI_OUTPUT_PRICE_PER_MILLION || "1.25",
+    );
 
     let prompt: string;
 

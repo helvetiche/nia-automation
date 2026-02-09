@@ -178,15 +178,16 @@ export default function UploadModal({
         const fileId = fileIds[i];
         const fileConfig = selectedFiles[i];
 
+        const formData = new FormData();
+        formData.append("pdfFile", fileConfig.file);
+        formData.append("pdfId", fileId);
+        formData.append("scanType", "summary");
+        formData.append("pageNumbers", fileConfig.pageNumber);
+        formData.append("displayName", fileConfig.displayName);
+
         await apiCall("/api/files/scan", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pdfId: fileId,
-            scanType: "summary",
-            pageNumbers: fileConfig.pageNumber,
-            displayName: fileConfig.displayName,
-          }),
+          body: formData,
         });
 
         setScanProgress(((i + 1) / totalFiles) * 100);

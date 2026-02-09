@@ -22,7 +22,6 @@ import {
   VideoCamera,
   FilePdf,
   Eye,
-  ScanSmiley,
   Trash,
   ChartLineUp,
   ArrowsDownUp,
@@ -41,12 +40,10 @@ import DeleteFolderModal from "./DeleteFolderModal";
 import MoveFolderModal from "./MoveFolderModal";
 import SummaryModal from "./SummaryModal";
 import SummaryViewModal from "./SummaryViewModal";
-import ScanOptionsModal from "./ScanOptionsModal";
 import Tooltip from "@/components/Tooltip";
 import { useToast } from "@/components/ToastContainer";
 import FileList from "./FileList";
 import FileGridSkeleton from "./FileGridSkeleton";
-import BulkScanModal from "./BulkScanModal";
 import BulkMovePdfModal from "./BulkMovePdfModal";
 import BulkDeleteModal from "./BulkDeleteModal";
 import ReportConfigModal from "./ReportConfigModal";
@@ -162,7 +159,6 @@ export default function FileGrid({
   onViewModeChange,
   loading = false,
 }: FileGridProps) {
-  const [scanning, setScanning] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -177,170 +173,16 @@ export default function FileGrid({
   const [summaryViewModal, setSummaryViewModal] = useState<PdfFile | null>(
     null,
   );
-  const [scanOptionsModal, setScanOptionsModal] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
   const [deletedPdfs, setDeletedPdfs] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [bulkActionsMenu, setBulkActionsMenu] = useState(false);
   const [bulkMoveModal, setBulkMoveModal] = useState(false);
-  const [bulkScanModal, setBulkScanModal] = useState(false);
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false);
   const [bulkReportModal, setBulkReportModal] = useState(false);
   const [syncingFolders, setSyncingFolders] = useState<Set<string>>(new Set());
-  const [batchScanning, setBatchScanning] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("nia-batch-scanning") === "true";
-  });
-  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    return parseInt(localStorage.getItem("nia-estimated-time") || "0", 10);
-  });
-  const [currentlyScanning, setCurrentlyScanning] = useState<string | null>(
-    () => {
-      if (typeof window === "undefined") return null;
-      return localStorage.getItem("nia-currently-scanning");
-    },
-  );
   const bulkMenuRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
-
-  useEffect(() => {
-    if (batchScanning) {
-      localStorage.setItem("nia-batch-scanning", "true");
-    } else {
-      localStorage.removeItem("nia-batch-scanning");
-    }
-  }, [batchScanning]);
-
-  useEffect(() => {
-    if (currentlyScanning) {
-      localStorage.setItem("nia-currently-scanning", currentlyScanning);
-    } else {
-      localStorage.removeItem("nia-currently-scanning");
-    }
-  }, [currentlyScanning]);
-
-  useEffect(() => {
-    if (estimatedTimeRemaining > 0) {
-      localStorage.setItem(
-        "nia-estimated-time",
-        estimatedTimeRemaining.toString(),
-      );
-    } else {
-      localStorage.removeItem("nia-estimated-time");
-    }
-  }, [estimatedTimeRemaining]);
-
-  useEffect(() => {
-    const resumeBatchScan = async () => {
-      if (batchScanning && selectedItems.size === 0) {
-        const savedQueue = localStorage.getItem("nia-scan-queue");
-        if (savedQueue) {
-          const queueIds = JSON.parse(savedQueue) as string[];
-          setSelectedItems(new Set(queueIds));
-
-          const startTime = Date.now();
-          let completed = 0;
-          let failed = 0;
-          const startIndex = queueIds.findIndex(
-            (id) => id === currentlyScanning,
-          );
-          const remainingIds =
-            startIndex >= 0 ? queueIds.slice(startIndex) : queueIds;
-
-          try {
-            for (const pdfId of remainingIds) {
-              setCurrentlyScanning(pdfId);
-
-              try {
-                const response = await apiCall("/api/files/scan", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ pdfId }),
-                });
-
-                if (!response.ok) {
-                  console.error(
-                    `scan failed for PDF ${pdfId}:`,
-                    response.status,
-                  );
-                  failed++;
-                } else {
-                  completed++;
-                }
-              } catch (fileError) {
-                console.error(`scan error for PDF ${pdfId}:`, fileError);
-                failed++;
-              }
-
-              const totalProcessed = completed + failed;
-              const elapsedSeconds = Math.floor(
-                (Date.now() - startTime) / 1000,
-              );
-              const avgTimePerFile = elapsedSeconds / totalProcessed;
-              const remainingFiles = remainingIds.length - totalProcessed;
-              const estimatedRemaining = Math.ceil(
-                remainingFiles * avgTimePerFile,
-              );
-              setEstimatedTimeRemaining(estimatedRemaining);
-
-              setCurrentlyScanning(null);
-
-              await onRefresh();
-            }
-
-            if (failed === 0) {
-              showToast(
-                "success",
-                "Scanning Complete",
-                `${completed} PDF${completed !== 1 ? "s" : ""} scanned successfully`,
-              );
-            } else if (completed === 0) {
-              showToast(
-                "error",
-                "Scanning Failed",
-                `All ${failed} PDF${failed !== 1 ? "s" : ""} failed to scan`,
-              );
-            } else {
-              showToast(
-                "warning",
-                "Scanning Partial",
-                `${completed} PDF${completed !== 1 ? "s" : ""} scanned, ${failed} failed`,
-              );
-            }
-
-            setSelectedItems(new Set());
-            setIsSelectMode(false);
-            localStorage.removeItem("nia-scan-queue");
-            await onRefresh();
-            setTimeout(() => onRefresh(), 500);
-          } catch (error) {
-            console.error("batch scan failed:", error);
-            showToast(
-              "error",
-              "Oops, something broke",
-              "Could not scan all files. Try again?",
-            );
-          } finally {
-            setBatchScanning(false);
-            setEstimatedTimeRemaining(0);
-            setCurrentlyScanning(null);
-            localStorage.removeItem("nia-scan-queue");
-          }
-        } else {
-          setBatchScanning(false);
-          setEstimatedTimeRemaining(0);
-          setCurrentlyScanning(null);
-        }
-      }
-    };
-
-    resumeBatchScan();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (!bulkMenuRef.current) return;
@@ -374,42 +216,6 @@ export default function FileGrid({
   const subfolders = folders.filter(
     (f) => f.parentId === currentFolder && !deletedFolders.includes(f.id),
   );
-
-  const scanPdf = async (
-    pdfId: string,
-    scanType: "total" | "summary" = "total",
-    pageNumbers?: string,
-  ) => {
-    setScanning([...scanning, pdfId]);
-
-    try {
-      const response = await apiCall("/api/files/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdfId, scanType, pageNumbers }),
-      });
-
-      if (response.ok) {
-        await onRefresh();
-
-        setTimeout(async () => {
-          await onRefresh();
-        }, 1500);
-
-        setTimeout(async () => {
-          await onRefresh();
-        }, 3000);
-      } else {
-        console.error("scan request failed:", response.status);
-      }
-    } catch (error) {
-      console.error("scan failed:", error);
-    } finally {
-      setTimeout(() => {
-        setScanning(scanning.filter((id) => id !== pdfId));
-      }, 1000);
-    }
-  };
 
   const deleteFolder = async () => {
     if (!deleteModal) return;
@@ -621,96 +427,6 @@ export default function FileGrid({
     }
   };
 
-  const batchScanPdfs = async (
-    scanType: "total" | "summary" = "total",
-    pageNumbers?: string,
-  ) => {
-    const selectedPdfIds = Array.from(selectedItems);
-    if (selectedPdfIds.length === 0) return;
-
-    localStorage.setItem("nia-scan-queue", JSON.stringify(selectedPdfIds));
-    setBatchScanning(true);
-    setEstimatedTimeRemaining(selectedPdfIds.length * 30);
-
-    const startTime = Date.now();
-    let completed = 0;
-    let failed = 0;
-
-    try {
-      for (const pdfId of selectedPdfIds) {
-        setCurrentlyScanning(pdfId);
-
-        try {
-          const response = await apiCall("/api/files/scan", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pdfId, scanType, pageNumbers }),
-          });
-
-          if (!response.ok) {
-            console.error(`scan failed for PDF ${pdfId}:`, response.status);
-            failed++;
-          } else {
-            completed++;
-          }
-        } catch (fileError) {
-          console.error(`scan error for PDF ${pdfId}:`, fileError);
-          failed++;
-        }
-
-        const totalProcessed = completed + failed;
-        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-        const avgTimePerFile = elapsedSeconds / totalProcessed;
-        const remainingFiles = selectedPdfIds.length - totalProcessed;
-        const estimatedRemaining = Math.ceil(remainingFiles * avgTimePerFile);
-        setEstimatedTimeRemaining(estimatedRemaining);
-
-        setCurrentlyScanning(null);
-
-        await onRefresh();
-      }
-
-      if (failed === 0) {
-        showToast(
-          "success",
-          "Scanning Complete",
-          `${completed} PDF${completed !== 1 ? "s" : ""} scanned successfully`,
-        );
-      } else if (completed === 0) {
-        showToast(
-          "error",
-          "Scanning Failed",
-          `All ${failed} PDF${failed !== 1 ? "s" : ""} failed to scan`,
-        );
-      } else {
-        showToast(
-          "warning",
-          "Scanning Partial",
-          `${completed} PDF${completed !== 1 ? "s" : ""} scanned, ${failed} failed`,
-        );
-      }
-
-      setSelectedItems(new Set());
-      setIsSelectMode(false);
-      setBulkActionsMenu(false);
-      localStorage.removeItem("nia-scan-queue");
-      await onRefresh();
-      setTimeout(() => onRefresh(), 500);
-    } catch (error) {
-      console.error("batch scan failed:", error);
-      showToast(
-        "error",
-        "Oops, something broke",
-        "Could not scan all files. Try again?",
-      );
-    } finally {
-      setBatchScanning(false);
-      setEstimatedTimeRemaining(0);
-      setCurrentlyScanning(null);
-      localStorage.removeItem("nia-scan-queue");
-    }
-  };
-
   const bulkDeletePdfs = async () => {
     const selectedPdfIds = Array.from(selectedItems).filter((id) =>
       files.some((f) => f.id === id),
@@ -907,17 +623,6 @@ export default function FileGrid({
                 >
                   <button
                     onClick={() => {
-                      setBulkScanModal(true);
-                      setBulkActionsMenu(false);
-                    }}
-                    disabled={batchScanning}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ScanSmiley weight="regular" className="w-4 h-4" />
-                    Scan Selected
-                  </button>
-                  <button
-                    onClick={() => {
                       setBulkReportModal(true);
                       setBulkActionsMenu(false);
                     }}
@@ -964,8 +669,6 @@ export default function FileGrid({
           selectedPdfs={selectedItems}
           onToggleSelectPdf={(id) => toggleSelectItem(id)}
           onToggleSelectAllPdfs={(ids) => toggleSelectAllItems(ids)}
-          currentlyScanning={currentlyScanning}
-          estimatedTimeRemaining={estimatedTimeRemaining}
           loading={loading}
         />
       ) : loading ? (
@@ -1495,28 +1198,6 @@ export default function FileGrid({
                           </button>
                         </Tooltip>
                       )}
-                      {file.status === "unscanned" && (
-                        <Tooltip
-                          title="Scan"
-                          description="Extract table data from this PDF"
-                          icon={
-                            <ScanSmiley weight="regular" className="w-4 h-4" />
-                          }
-                        >
-                          <button
-                            onClick={() =>
-                              setScanOptionsModal({
-                                id: file.id,
-                                name: file.name,
-                              })
-                            }
-                            disabled={scanning.includes(file.id)}
-                            className={`p-2 bg-white rounded-lg hover:bg-gray-50 transition disabled:opacity-50 ${textColor}`}
-                          >
-                            <ScanSmiley weight="regular" className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                      )}
                       <Tooltip
                         title="Delete"
                         description="Remove this file permanently"
@@ -1599,15 +1280,6 @@ export default function FileGrid({
         />
       )}
 
-      {bulkScanModal && (
-        <BulkScanModal
-          isOpen={true}
-          onClose={() => setBulkScanModal(false)}
-          onConfirm={batchScanPdfs}
-          selectedCount={selectedItems.size}
-        />
-      )}
-
       {bulkReportModal && (
         <ReportConfigModal
           onClose={() => setBulkReportModal(false)}
@@ -1628,17 +1300,6 @@ export default function FileGrid({
             ).length
           }
           onConfirm={bulkDeletePdfs}
-        />
-      )}
-
-      {scanOptionsModal && (
-        <ScanOptionsModal
-          isOpen={true}
-          onClose={() => setScanOptionsModal(null)}
-          pdfName={scanOptionsModal.name}
-          onConfirm={(scanType, pageNumbers) =>
-            scanPdf(scanOptionsModal.id, scanType, pageNumbers)
-          }
         />
       )}
 

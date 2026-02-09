@@ -57,12 +57,12 @@ export async function generateLIPAReport(data: ReportData & {
     const capitalizeKeywords = data.capitalizeKeywords || [];
 
     for (const keyword of uppercaseKeywords) {
-      const regex = new RegExp(keyword, "gi");
+      const regex = new RegExp(`\\b${keyword}\\b`, "gi");
       processedText = processedText.replace(regex, keyword.toUpperCase());
     }
 
     for (const keyword of capitalizeKeywords) {
-      const regex = new RegExp(keyword, "gi");
+      const regex = new RegExp(`\\b${keyword}\\b`, "gi");
       processedText = processedText.replace(regex, keyword.toUpperCase());
     }
 
@@ -184,12 +184,18 @@ export async function generateLIPAReport(data: ReportData & {
     worksheet.mergeCells(`A${divisionRow.number}:C${divisionRow.number}`);
 
     division.irrigators.forEach((irrigator) => {
-      const transformedName = applyTextTransformations(irrigator.name);
+      let transformedName = applyTextTransformations(irrigator.name);
+      
+      transformedName = transformedName.replace(/\(([^)]+)\)/g, (match, content) => {
+        return `(${content.toUpperCase()})`;
+      });
+      
       const row = worksheet.addRow([
         irrigator.no,
         transformedName,
         irrigator.totalPlantedArea,
       ]);
+      
       row.font = { name: "Cambria", size: 11 };
       row.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
       row.getCell(3).numFmt = "#,##0.00";

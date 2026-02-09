@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminStorage, adminDb } from "@/lib/firebase/adminConfig";
+import { adminDb } from "@/lib/firebase/adminConfig";
 import { verifyOperator } from "@/lib/auth/middleware";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -85,32 +85,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const bucket = adminStorage().bucket();
     const uploadedFiles = [];
     const batch = adminDb().batch();
+    const timestamp = Date.now();
 
     for (const file of files) {
-      console.log("Uploading file:", file.name);
-
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const timestamp = Date.now();
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const fileName = `pdfs/${userId}/${timestamp}_${sanitizedName}`;
-      const fileRef = bucket.file(fileName);
-
-      await fileRef.save(buffer, {
-        contentType: "application/pdf",
-        metadata: {
-          userId,
-          originalName: file.name,
-          uploadedAt: timestamp.toString(),
-        },
-      });
-
-      const [url] = await fileRef.getSignedUrl({
-        action: "read",
-        expires: Date.now() + 365 * 24 * 60 * 60 * 1000,
-      });
+      console.log("Creating metadata for file:", file.name);
 
       const pdfRef = adminDb().collection("pdfs").doc();
       batch.set(pdfRef, {
@@ -118,8 +98,6 @@ export async function POST(request: NextRequest) {
         folderId: folderId || null,
         status: "unscanned",
         uploadedAt: timestamp,
-        storageUrl: url,
-        storagePath: fileName,
         fileSize: file.size,
         userId,
       });

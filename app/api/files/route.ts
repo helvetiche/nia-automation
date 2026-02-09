@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb, adminStorage } from "@/lib/firebase/adminConfig";
-import { verifyOperator } from "@/lib/auth/middleware";
+import { adminDb } from "@/lib/firebase/adminConfig";
+import { requireOperator } from "@/lib/auth/guards";
 import type { Folder, PdfFile } from "@/types";
 
 export async function GET(request: NextRequest) {
-  try {
-    const token = request.headers.get("authorization")?.split("Bearer ")[1];
-    if (!token) {
-      return NextResponse.json({ error: "not authorized" }, { status: 401 });
-    }
+  const authResult = await requireOperator(request);
+  if ("error" in authResult) return authResult.error;
 
-    const decodedToken = await verifyOperator(token);
-    const userId = decodedToken.uid;
+  const userId = authResult.user.uid;
+
+  try {
 
     const folderId = request.nextUrl.searchParams.get("folderId");
     const limit = parseInt(request.nextUrl.searchParams.get("limit") || "50");
@@ -58,14 +56,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  try {
-    const token = request.headers.get("authorization")?.split("Bearer ")[1];
-    if (!token) {
-      return NextResponse.json({ error: "not authorized" }, { status: 401 });
-    }
+  const authResult = await requireOperator(request);
+  if ("error" in authResult) return authResult.error;
 
-    const decodedToken = await verifyOperator(token);
-    const userId = decodedToken.uid;
+  const userId = authResult.user.uid;
+
+  try {
 
     const pdfId = request.nextUrl.searchParams.get("id");
 
@@ -83,18 +79,6 @@ export async function DELETE(request: NextRequest) {
 
     if (pdfData?.userId !== userId) {
       return NextResponse.json({ error: "not authorized" }, { status: 403 });
-    }
-
-    const storagePath = pdfData.storagePath;
-
-    if (storagePath) {
-      try {
-        const bucket = adminStorage().bucket();
-        const file = bucket.file(storagePath);
-        await file.delete();
-      } catch (storageError) {
-        console.error("storage delete error:", storageError);
-      }
     }
 
     await adminDb().collection("pdfs").doc(pdfId).delete();
