@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase/adminConfig";
 import { verifyOperator } from "@/lib/auth/middleware";
+import {
+  getUsageMetrics,
+  updateUsageMetrics,
+} from "@/lib/services/firestoreService";
+import { sanitizeNumber } from "@/lib/validation/sanitize";
+import { adminDb } from "@/lib/firebase/adminConfig";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,9 +16,9 @@ export async function GET(request: NextRequest) {
 
     await verifyOperator(token);
 
-    const metricsDoc = await adminDb().collection("usage").doc("metrics").get();
+    const metricsData = await getUsageMetrics();
 
-    if (!metricsDoc.exists) {
+    if (!metricsData) {
       return NextResponse.json(
         {
           totalInputTokens: 0,
@@ -34,11 +39,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const metricsData = metricsDoc.data();
-    const totalInputTokens = metricsData?.inputTokens || 0;
-    const totalOutputTokens = metricsData?.outputTokens || 0;
-    const totalCost = metricsData?.totalCost || 0;
-    const usageLimit = metricsData?.usageLimit || 1000;
+    const totalInputTokens = metricsData.inputTokens || 0;
+    const totalOutputTokens = metricsData.outputTokens || 0;
+    const totalCost = metricsData.totalCost || 0;
+    const usageLimit = metricsData.usageLimit || 1000;
 
     const pdfsSnapshot = await adminDb()
       .collection("pdfs")
@@ -65,8 +69,7 @@ export async function GET(request: NextRequest) {
         },
       },
     );
-  } catch (error) {
-    console.error("stats fetch error:", error);
+  } catch {
     return NextResponse.json({ error: "server is broken" }, { status: 500 });
   }
 }
@@ -81,27 +84,12 @@ export async function PATCH(request: NextRequest) {
     await verifyOperator(token);
 
     const body = await request.json();
-    const { usageLimit } = body;
+    const usageLimit = sanitizeNumber(body.usageLimit, 0, 1000000);
 
-    if (typeof usageLimit !== "number" || usageLimit < 0) {
-      return NextResponse.json(
-        { error: "invalid usage limit" },
-        { status: 400 },
-      );
-    }
-
-    const metricsRef = adminDb().collection("usage").doc("metrics");
-
-    await metricsRef.set(
-      {
-        usageLimit,
-      },
-      { merge: true },
-    );
+    await updateUsageMetrics({ usageLimit });
 
     return NextResponse.json({ success: true, usageLimit });
-  } catch (error) {
-    console.error("usage limit update error:", error);
+  } catch {
     return NextResponse.json({ error: "server is broken" }, { status: 500 });
   }
 }

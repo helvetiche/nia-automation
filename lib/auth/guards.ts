@@ -23,8 +23,20 @@ export async function requireAuth(
 
   const token = authHeader.substring(7);
 
+  if (!token || token.length < 10) {
+    return {
+      error: NextResponse.json({ error: "invalid token" }, { status: 401 }),
+    };
+  }
+
   try {
-    const decodedToken = await adminAuth().verifyIdToken(token);
+    const decodedToken = await adminAuth().verifyIdToken(token, true);
+
+    if (!decodedToken.uid) {
+      return {
+        error: NextResponse.json({ error: "invalid token" }, { status: 401 }),
+      };
+    }
 
     return {
       user: {
@@ -33,8 +45,7 @@ export async function requireAuth(
         role: (decodedToken.role as string) || "user",
       },
     };
-  } catch (error) {
-    console.error("auth verification failed:", error);
+  } catch {
     return {
       error: NextResponse.json({ error: "invalid token" }, { status: 401 }),
     };

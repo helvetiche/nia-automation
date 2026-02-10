@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase/adminConfig";
 import { verifyOperator } from "@/lib/auth/middleware";
+import {
+  getFoldersByUser,
+  getFolderById,
+  createFolder,
+  updateFolder,
+  deleteFolderWithContents,
+} from "@/lib/services/firestoreService";
+import {
+  sanitizeString,
+  sanitizeFolderId,
+  validateRequired,
+} from "@/lib/validation/sanitize";
+
+const VALID_COLORS = [
+  "red",
+  "orange",
+  "yellow",
+  "emerald",
+  "blue",
+  "indigo",
+  "purple",
+  "pink",
+];
+
+const MAX_FOLDER_DEPTH = 4;
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,16 +36,7 @@ export async function GET(request: NextRequest) {
     const decodedToken = await verifyOperator(token);
     const userId = decodedToken.uid;
 
-    const snapshot = await adminDb()
-      .collection("folders")
-      .where("userId", "==", userId)
-      .orderBy("createdAt", "asc")
-      .get();
-
-    const folders = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const folders = await getFoldersByUser(userId);
 
     return NextResponse.json(
       { folders },
@@ -33,8 +48,7 @@ export async function GET(request: NextRequest) {
         },
       },
     );
-  } catch (error) {
-    console.error("folder fetch error:", error);
+  } catch {
     return NextResponse.json({ error: "something broke" }, { status: 500 });
   }
 }
@@ -49,90 +63,74 @@ export async function POST(request: NextRequest) {
     const decodedToken = await verifyOperator(token);
     const userId = decodedToken.uid;
 
-    const { name, parentId, color, icon, description } = await request.json();
+    const body = await request.json();
+    const name = sanitizeString(body.name, 100);
+    const rawParentId = body.parentId;
+    const color = body.color;
+    const icon = body.icon;
+    const description = sanitizeString(body.description, 50);
 
-    if (!name || !name.trim()) {
+    const validation = validateRequired({ name });
+    if (!validation.valid) {
       return NextResponse.json(
         { error: "folder name required" },
         { status: 400 },
       );
     }
 
-    if (name.length > 100) {
-      return NextResponse.json(
-        { error: "folder name too long" },
-        { status: 400 },
-      );
-    }
-
-    if (description && description.length > 50) {
-      return NextResponse.json(
-        { error: "description must be 50 characters or less" },
-        { status: 400 },
-      );
-    }
-
-    const validColors = [
-      "red",
-      "orange",
-      "yellow",
-      "emerald",
-      "blue",
-      "indigo",
-      "purple",
-      "pink",
-    ];
-    if (color && !validColors.includes(color)) {
+    if (color && !VALID_COLORS.includes(color)) {
       return NextResponse.json({ error: "invalid color" }, { status: 400 });
     }
 
     let level = 1;
-    if (parentId) {
-      const parentDoc = await adminDb()
-        .collection("folders")
-        .doc(parentId)
-        .get();
-      if (!parentDoc.exists) {
+    let parentId: string | null = null;
+
+    if (rawParentId) {
+      parentId = sanitizeFolderId(rawParentId);
+      if (!parentId) {
+        return NextResponse.json(
+          { error: "invalid parent folder id" },
+          { status: 400 },
+        );
+      }
+
+      const parentFolder = await getFolderById(parentId);
+      if (!parentFolder) {
         return NextResponse.json(
           { error: "parent folder not found" },
           { status: 404 },
         );
       }
-      const parentData = parentDoc.data();
 
-      if (parentData?.userId !== userId) {
+      if (parentFolder.userId !== userId) {
         return NextResponse.json({ error: "not authorized" }, { status: 403 });
       }
 
-      level = (parentData?.level || 0) + 1;
+      level = (parentFolder.level || 0) + 1;
 
-      if (level > 4) {
+      if (level > MAX_FOLDER_DEPTH) {
         return NextResponse.json(
-          { error: "max folder depth reached (4 levels)" },
+          { error: `max folder depth reached (${MAX_FOLDER_DEPTH} levels)` },
           { status: 400 },
         );
       }
     }
 
-    const folderData: Record<string, unknown> = {
-      name: name.trim(),
-      parentId: parentId || null,
+    const folderData = {
+      name,
+      parentId,
       level,
       createdAt: Date.now(),
       userId,
       color: color || "blue",
       icon: icon || "Folder",
+      ...(description && { description }),
     };
 
-    if (description && description.trim()) {
-      folderData.description = description.trim();
-    }
+    const folderId = await createFolder(folderData);
 
-    const folderRef = await adminDb().collection("folders").add(folderData);
-
-    return NextResponse.json({ id: folderRef.id });
-  } catch (error) {
-    console.error("folder creation error:", error);
+    return NextResponse.json({ id: folderId });
+  } catch {
     return NextResponse.json({ error: "something broke" }, { status: 500 });
   }
 }
@@ -147,8 +145,8 @@ export async function DELETE(request: NextRequest) {
     const decodedToken = await verifyOperator(token);
     const userId = decodedToken.uid;
 
-    const { searchParams } = new URL(request.url);
-    const folderId = searchParams.get("id");
+    const rawFolderId = request.nextUrl.searchParams.get("id");
+    const folderId = sanitizeFolderId(rawFolderId);
 
     if (!folderId) {
       return NextResponse.json(
@@ -157,44 +155,20 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const folderDoc = await adminDb().collection("folders").doc(folderId).get();
+    const folder = await getFolderById(folderId);
 
-    if (!folderDoc.exists) {
+    if (!folder) {
       return NextResponse.json({ error: "folder not found" }, { status: 404 });
     }
 
-    const folderData = folderDoc.data();
-    if (folderData?.userId !== userId) {
+    if (folder.userId !== userId) {
       return NextResponse.json({ error: "not authorized" }, { status: 403 });
     }
 
-    const batch = adminDb().batch();
-
-    const subfolders = await adminDb()
-      .collection("folders")
-      .where("parentId", "==", folderId)
-      .get();
-
-    subfolders.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    const files = await adminDb()
-      .collection("files")
-      .where("folderId", "==", folderId)
-      .get();
-
-    files.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    batch.delete(folderDoc.ref);
-
-    await batch.commit();
+    await deleteFolderWithContents(folderId);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("folder deletion error:", error);
+  } catch {
     return NextResponse.json({ error: "something broke" }, { status: 500 });
   }
 }
@@ -209,8 +183,8 @@ export async function PATCH(request: NextRequest) {
     const decodedToken = await verifyOperator(token);
     const userId = decodedToken.uid;
 
-    const { searchParams } = new URL(request.url);
-    const folderId = searchParams.get("id");
+    const rawFolderId = request.nextUrl.searchParams.get("id");
+    const folderId = sanitizeFolderId(rawFolderId);
 
     if (!folderId) {
       return NextResponse.json(
@@ -219,58 +193,57 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { parentId } = await request.json();
+    const body = await request.json();
+    const rawParentId = body.parentId;
 
-    const folderDoc = await adminDb().collection("folders").doc(folderId).get();
+    const folder = await getFolderById(folderId);
 
-    if (!folderDoc.exists) {
+    if (!folder) {
       return NextResponse.json({ error: "folder not found" }, { status: 404 });
     }
 
-    const folderData = folderDoc.data();
-    if (folderData?.userId !== userId) {
+    if (folder.userId !== userId) {
       return NextResponse.json({ error: "not authorized" }, { status: 403 });
     }
 
     let level = 1;
-    if (parentId) {
-      const parentDoc = await adminDb()
-        .collection("folders")
-        .doc(parentId)
-        .get();
-      if (!parentDoc.exists) {
+    let parentId: string | null = null;
+
+    if (rawParentId) {
+      parentId = sanitizeFolderId(rawParentId);
+      if (!parentId) {
+        return NextResponse.json(
+          { error: "invalid parent folder id" },
+          { status: 400 },
+        );
+      }
+
+      const parentFolder = await getFolderById(parentId);
+      if (!parentFolder) {
         return NextResponse.json(
           { error: "parent folder not found" },
           { status: 404 },
         );
       }
-      const parentData = parentDoc.data();
 
-      if (parentData?.userId !== userId) {
+      if (parentFolder.userId !== userId) {
         return NextResponse.json({ error: "not authorized" }, { status: 403 });
       }
 
-      level = (parentData?.level || 0) + 1;
+      level = (parentFolder.level || 0) + 1;
 
-      if (level > 4) {
+      if (level > MAX_FOLDER_DEPTH) {
         return NextResponse.json(
-          { error: "max folder depth reached (4 levels)" },
+          { error: `max folder depth reached (${MAX_FOLDER_DEPTH} levels)` },
           { status: 400 },
         );
       }
     }
 
-    await adminDb()
-      .collection("folders")
-      .doc(folderId)
-      .update({
-        parentId: parentId || null,
-        level,
-      });
+    await updateFolder(folderId, { parentId, level });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("folder move error:", error);
+  } catch {
     return NextResponse.json({ error: "something broke" }, { status: 500 });
   }
 }

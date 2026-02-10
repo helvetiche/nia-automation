@@ -1,6 +1,6 @@
-export function sanitizeString(input: unknown): string {
+export function sanitizeString(input: unknown, maxLength = 1000): string {
   if (typeof input !== "string") return "";
-  return input.trim().slice(0, 1000);
+  return input.trim().replace(/[<>]/g, "").slice(0, maxLength);
 }
 
 export function sanitizeNumber(input: unknown, min = 0, max = 1000000): number {
@@ -39,4 +39,58 @@ export function isValidEmail(email: string): boolean {
 
 export function isValidId(id: string): boolean {
   return /^[a-zA-Z0-9_-]{1,128}$/.test(id);
+}
+
+export function sanitizeFileName(input: unknown): string {
+  if (typeof input !== "string") return "";
+  return input
+    .trim()
+    .replace(/[^a-zA-Z0-9._\-\s]/g, "")
+    .slice(0, 255);
+}
+
+export function sanitizeFolderId(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  if (!isValidId(input)) return null;
+  return input;
+}
+
+export function sanitizeQueryParam(
+  input: string | null,
+  defaultValue = "",
+): string {
+  if (!input) return defaultValue;
+  return sanitizeString(input, 500);
+}
+
+export function validateFileUpload(file: File): {
+  valid: boolean;
+  error?: string;
+} {
+  const maxSize = 50 * 1024 * 1024;
+
+  if (!file.name.endsWith(".pdf")) {
+    return { valid: false, error: "only PDF files allowed" };
+  }
+
+  if (file.size > maxSize) {
+    return { valid: false, error: "file too large (max 50MB)" };
+  }
+
+  if (file.size === 0) {
+    return { valid: false, error: "file is empty" };
+  }
+
+  return { valid: true };
+}
+
+export function sanitizeJson<T>(input: unknown): T | null {
+  try {
+    if (typeof input === "string") {
+      return JSON.parse(input) as T;
+    }
+    return input as T;
+  } catch {
+    return null;
+  }
 }

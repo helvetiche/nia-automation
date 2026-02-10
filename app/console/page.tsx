@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/clientConfig";
 import FolderBrowser from "@/components/console/FolderBrowser";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const STORAGE_KEYS = {
   viewMode: "nia-view-mode",
@@ -48,8 +49,10 @@ export default function ConsolePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <FolderBrowser viewMode={viewMode} onViewModeChange={updateViewMode} />
-    </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <FolderBrowser viewMode={viewMode} onViewModeChange={updateViewMode} />
+      </div>
+    </ErrorBoundary>
   );
 }
