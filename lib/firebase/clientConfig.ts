@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { clientEnv } from "@/lib/config/env";
+import { clientEnv } from "@/lib/config/clientEnv";
 
 const firebaseConfig = {
   apiKey: clientEnv.firebase.apiKey,

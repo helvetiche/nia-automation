@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { serverEnv } from "@/lib/config/env";
+import { serverEnv } from "@/lib/config/serverEnv";
 
 const initAdmin = () => {
   if (admin.apps.length === 0) {
