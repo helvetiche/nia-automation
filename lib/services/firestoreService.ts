@@ -86,7 +86,7 @@ export async function getFilesByFolder(
   }
 
   query = query.orderBy("uploadedAt", "desc");
-  
+
   if (limit && limit > 0) {
     query = query.limit(limit);
   }

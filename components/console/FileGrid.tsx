@@ -567,16 +567,16 @@ export default function FileGrid({
   };
 
   return (
-    <div 
-      className="flex-1 overflow-y-auto p-6 relative" 
+    <div
+      className="flex-1 overflow-y-auto p-6 relative"
       onContextMenu={openContextMenu}
       style={{
         backgroundImage: `
           linear-gradient(to right, rgba(6, 78, 59, 0.1) 1px, transparent 1px),
           linear-gradient(to bottom, rgba(6, 78, 59, 0.1) 1px, transparent 1px)
         `,
-        backgroundSize: '100px 100px',
-        backgroundPosition: '0 0'
+        backgroundSize: "100px 100px",
+        backgroundPosition: "0 0",
       }}
     >
       <div className="mb-4 flex items-center justify-between">
