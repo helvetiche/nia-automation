@@ -2,6 +2,7 @@ import { useState } from "react";
 import { apiCall } from "@/lib/api/client";
 import { useToast } from "@/components/ToastContainer";
 import type { PdfFile } from "@/types";
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "@/lib/constants/appConfig";
 
 export const useFileOperations = (onRefresh: () => void) => {
   const [scanning, setScanning] = useState<string[]>([]);
@@ -25,14 +26,14 @@ export const useFileOperations = (onRefresh: () => void) => {
       });
 
       if (response.ok) {
-        await onRefresh();
-        setTimeout(async () => await onRefresh(), 1500);
-        setTimeout(async () => await onRefresh(), 3000);
+        onRefresh();
       } else {
         console.error("scan request failed:", response.status);
+        showToast("error", ERROR_MESSAGES.SERVER_ERROR, ERROR_MESSAGES.SCAN_FAILED);
       }
     } catch (error) {
       console.error("scan failed:", error);
+      showToast("error", ERROR_MESSAGES.SERVER_ERROR, ERROR_MESSAGES.SCAN_FAILED);
     } finally {
       setTimeout(() => {
         setScanning((prev) => prev.filter((id) => id !== pdfId));
@@ -46,7 +47,7 @@ export const useFileOperations = (onRefresh: () => void) => {
     pdfName: string,
   ) => {
     setMovedPdfs({ ...movedPdfs, [pdfId]: targetFolderId });
-    showToast("success", "File Moved", `${pdfName} has been moved`);
+    showToast("success", SUCCESS_MESSAGES.FILE_MOVED, `${pdfName} has been moved`);
 
     try {
       const response = await apiCall("/api/files/move", {
@@ -61,11 +62,7 @@ export const useFileOperations = (onRefresh: () => void) => {
             Object.entries(movedPdfs).filter(([key]) => key !== pdfId),
           ),
         );
-        showToast(
-          "error",
-          "Oops, something broke",
-          "Could not move the file. Try again?",
-        );
+        showToast("error", ERROR_MESSAGES.SERVER_ERROR, ERROR_MESSAGES.MOVE_FAILED);
       } else {
         onRefresh();
       }
@@ -76,17 +73,13 @@ export const useFileOperations = (onRefresh: () => void) => {
           Object.entries(movedPdfs).filter(([key]) => key !== pdfId),
         ),
       );
-      showToast(
-        "error",
-        "Oops, something broke",
-        "Could not move the file. Try again?",
-      );
+      showToast("error", ERROR_MESSAGES.SERVER_ERROR, ERROR_MESSAGES.MOVE_FAILED);
     }
   };
 
   const deletePdf = async (pdfId: string, pdfName: string) => {
     setDeletedPdfs([...deletedPdfs, pdfId]);
-    showToast("success", "File Deleted", `${pdfName} has been removed`);
+    showToast("success", SUCCESS_MESSAGES.FILE_DELETED, `${pdfName} has been removed`);
 
     try {
       const response = await apiCall(`/api/files?id=${pdfId}`, {
@@ -95,22 +88,14 @@ export const useFileOperations = (onRefresh: () => void) => {
 
       if (!response.ok) {
         setDeletedPdfs(deletedPdfs.filter((id) => id !== pdfId));
-        showToast(
-          "error",
-          "Oops, something broke",
-          "Could not delete the file. Try again?",
-        );
+        showToast("error", ERROR_MESSAGES.SERVER_ERROR, ERROR_MESSAGES.DELETE_FAILED);
       } else {
         onRefresh();
       }
     } catch (error) {
       console.error("delete pdf failed:", error);
       setDeletedPdfs(deletedPdfs.filter((id) => id !== pdfId));
-      showToast(
-        "error",
-        "Oops, something broke",
-        "Could not delete the file. Try again?",
-      );
+      showToast("error", ERROR_MESSAGES.SERVER_ERROR, ERROR_MESSAGES.DELETE_FAILED);
     }
   };
 
