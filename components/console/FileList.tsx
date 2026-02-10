@@ -50,6 +50,7 @@ import MovePdfModal from "./MovePdfModal";
 import NoticePopover from "./NoticePopover";
 import RowActionsMenu from "./RowActionsMenu";
 import FileListSkeleton from "./FileListSkeleton";
+import ConfirmPopover from "./ConfirmPopover";
 
 interface FileListProps {
   folders: Folder[];
@@ -176,6 +177,13 @@ export default function FileList({
     id: string;
     summaryId?: string;
     currentNotice?: string;
+    anchorRef: React.RefObject<HTMLElement | null>;
+  } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    isOpen: boolean;
+    fileId: string;
+    associationId: string;
+    associationName: string;
     anchorRef: React.RefObject<HTMLElement | null>;
   } | null>(null);
   const [folderPage, setFolderPage] = useState(1);
@@ -667,6 +675,98 @@ export default function FileList({
     } catch (error) {
       console.error("name update failed:", error);
       showToast("error", "Update failed", "Could not update name");
+    }
+  };
+
+  const addAssociation = async (fileId: string) => {
+    try {
+      const response = await apiCall(`/api/files/${fileId}/association`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLocalFiles((prevFiles) =>
+          prevFiles.map((file) => {
+            if (file.id === fileId) {
+              return {
+                ...file,
+                summaryData: [...(file.summaryData || []), data.association],
+              };
+            }
+            return file;
+          }),
+        );
+        showToast(
+          "success",
+          "Association Added",
+          "New association created successfully",
+        );
+        setExpandedSummaries(new Set([...expandedSummaries, fileId]));
+      } else {
+        showToast("error", "Add failed", "Could not add association");
+      }
+    } catch (error) {
+      console.error("add association failed:", error);
+      showToast("error", "Add failed", "Could not add association");
+    }
+  };
+
+  const deleteAssociation = async (fileId: string, associationId: string) => {
+    try {
+      const response = await apiCall(`/api/files/${fileId}/association`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ associationId }),
+      });
+
+      if (response.ok) {
+        setLocalFiles((prevFiles) =>
+          prevFiles.map((file) => {
+            if (file.id === fileId) {
+              return {
+                ...file,
+                summaryData: file.summaryData?.filter(
+                  (assoc) => assoc.id !== associationId,
+                ),
+              };
+            }
+            return file;
+          }),
+        );
+        showToast(
+          "success",
+          "Association Deleted",
+          "Association removed successfully",
+        );
+      } else {
+        showToast("error", "Delete failed", "Could not delete association");
+      }
+    } catch (error) {
+      console.error("delete association failed:", error);
+      showToast("error", "Delete failed", "Could not delete association");
+    }
+  };
+
+  const openDeleteConfirm = (
+    fileId: string,
+    associationId: string,
+    associationName: string,
+    anchorRef: React.RefObject<HTMLElement | null>,
+  ) => {
+    setConfirmDelete({
+      isOpen: true,
+      fileId,
+      associationId,
+      associationName,
+      anchorRef,
+    });
+  };
+
+  const confirmDeleteAssociation = () => {
+    if (confirmDelete) {
+      deleteAssociation(confirmDelete.fileId, confirmDelete.associationId);
     }
   };
 
@@ -1237,6 +1337,13 @@ export default function FileList({
                           actions={[
                             {
                               icon: (
+                                <Leaf weight="regular" className="w-4 h-4" />
+                              ),
+                              label: "Add Association",
+                              onClick: () => addAssociation(file.id),
+                            },
+                            {
+                              icon: (
                                 <ArrowsDownUp
                                   weight="regular"
                                   className="w-4 h-4"
@@ -1264,6 +1371,9 @@ export default function FileList({
                   file.summaryData && expandedSummaries.has(file.id)
                     ? file.summaryData.map((association, index) => {
                         const associationNoticeRef = {
+                          current: null,
+                        } as React.RefObject<HTMLButtonElement | null>;
+                        const deleteButtonRef = {
                           current: null,
                         } as React.RefObject<HTMLButtonElement | null>;
                         const hasAssociationNotice =
@@ -1527,7 +1637,7 @@ export default function FileList({
                               </div>
                             </td>
                             <td className="px-4 py-2">
-                              <div className="flex items-center justify-end">
+                              <div className="flex items-center justify-end gap-1">
                                 <Tooltip
                                   title={
                                     hasAssociationNotice
@@ -1565,6 +1675,34 @@ export default function FileList({
                                           ? "fill"
                                           : "regular"
                                       }
+                                      className="w-3 h-3"
+                                    />
+                                  </button>
+                                </Tooltip>
+                                <Tooltip
+                                  title="Delete"
+                                  description="Remove this association"
+                                  icon={
+                                    <Trash
+                                      weight="regular"
+                                      className="w-4 h-4"
+                                    />
+                                  }
+                                >
+                                  <button
+                                    ref={deleteButtonRef}
+                                    onClick={() =>
+                                      openDeleteConfirm(
+                                        file.id,
+                                        association.id,
+                                        association.name || "Unnamed Association",
+                                        deleteButtonRef,
+                                      )
+                                    }
+                                    className="p-1.5 rounded hover:bg-red-50 transition text-red-600"
+                                  >
+                                    <Trash
+                                      weight="regular"
                                       className="w-3 h-3"
                                     />
                                   </button>
@@ -2019,6 +2157,19 @@ export default function FileList({
           onSave={saveNotice}
           currentNotice={noticePopover.currentNotice}
           anchorRef={noticePopover.anchorRef}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmPopover
+          isOpen={confirmDelete.isOpen}
+          onClose={() => setConfirmDelete(null)}
+          onConfirm={confirmDeleteAssociation}
+          title="Delete Association?"
+          message={`Are you sure you want to remove "${confirmDelete.associationName}"? This cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          anchorRef={confirmDelete.anchorRef}
         />
       )}
     </div>

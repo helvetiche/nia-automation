@@ -346,10 +346,6 @@ IMPORTANT: If you cannot find a Total row, return empty values but still provide
         pageNumbers: pageNumbers || "",
       };
 
-      if (displayName) {
-        updateData.name = displayName;
-      }
-
       batch.update(adminDb().collection("pdfs").doc(pdfId), updateData);
     } else {
       const pages = extractedData.pages || [];

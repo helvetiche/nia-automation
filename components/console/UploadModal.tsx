@@ -142,6 +142,7 @@ export default function UploadModal({
 
     selectedFiles.forEach((fileConfig) => {
       formData.append("files", fileConfig.file);
+      formData.append("displayNames", fileConfig.displayName);
     });
 
     if (currentFolder) {

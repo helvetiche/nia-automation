@@ -17,9 +17,11 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const files = formData.getAll("files") as File[];
+    const displayNames = formData.getAll("displayNames") as string[];
     const folderId = formData.get("folderId") as string | null;
 
     console.log("Files received:", files.length);
+    console.log("Display names received:", displayNames.length);
     console.log("Folder ID:", folderId);
 
     if (!files || files.length === 0) {
@@ -85,12 +87,16 @@ export async function POST(request: NextRequest) {
     const batch = adminDb().batch();
     const timestamp = Date.now();
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const displayName = displayNames[i] || file.name;
+      
       console.log("Creating metadata for file:", file.name);
+      console.log("Using display name:", displayName);
 
       const pdfRef = adminDb().collection("pdfs").doc();
       batch.set(pdfRef, {
-        name: file.name,
+        name: displayName.endsWith('.pdf') ? displayName : `${displayName}.pdf`,
         folderId: folderId || null,
         status: "unscanned",
         uploadedAt: timestamp,
@@ -98,7 +104,7 @@ export async function POST(request: NextRequest) {
         userId,
       });
 
-      uploadedFiles.push({ id: pdfRef.id, name: file.name });
+      uploadedFiles.push({ id: pdfRef.id, name: displayName });
     }
 
     await batch.commit();
