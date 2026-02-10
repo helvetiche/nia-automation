@@ -134,6 +134,7 @@ When you first log in, you'll see:
 5. Your new folder appears in the sidebar
 
 **Tips:**
+
 - Use clear, descriptive names
 - Choose colors that make sense (e.g., blue for water-related documents)
 - Create a logical hierarchy before uploading files
@@ -174,6 +175,7 @@ When you first log in, you'll see:
 - When complete, status changes to "Scanned" or "Summary-Scanned"
 
 **Tips:**
+
 - Rename files before uploading for better organization
 - Use summary scan (specific pages) for faster processing
 - Upload multiple files at once to save time
@@ -199,22 +201,26 @@ When you first log in, you'll see:
 #### Editing Data
 
 **Edit Association Name:**
+
 1. Click the pencil icon next to the name
 2. Type the new name
 3. Press Enter or click the checkmark
 
 **Edit Area Value:**
+
 1. Click the pencil icon next to the area
 2. Enter the new value
 3. Press Enter or click the checkmark
 
 **Add New Association:**
+
 1. Click the three-dot menu on the file
 2. Select **Add Association**
 3. A blank row appears
 4. Fill in the name and area
 
 **Delete Association:**
+
 1. Click the trash icon next to the association
 2. Confirm deletion in the popup
 3. Association is removed
@@ -231,6 +237,7 @@ When you first log in, you'll see:
    - Confidence scores
 
 **Tips:**
+
 - Check confidence scores - higher is better
 - Verify extracted data against the original PDF
 - Edit any incorrect values immediately
@@ -270,6 +277,7 @@ When you first log in, you'll see:
 5. Folder and all its contents move
 
 **Tips:**
+
 - Plan your folder structure before moving many files
 - Use bulk move for efficiency
 - You can't move a folder into itself or its subfolders
@@ -306,10 +314,12 @@ When you first log in, you'll see:
 4. Open the file to view your report
 
 **Example Keywords:**
+
 - Bold: `Total, Irrigated, Planted`
 - Capitalize: `MALABON, LICUAN, BAGONG SILANG`
 
 **Tips:**
+
 - Only select scanned files (unscanned files won't have data)
 - Use keywords to highlight important information
 - Save report settings for future use
@@ -352,6 +362,7 @@ When you first log in, you'll see:
 3. Click to edit or remove the note
 
 **Tips:**
+
 - Use notes for special instructions
 - Mark files that need review
 - Document unusual data or exceptions
@@ -372,13 +383,16 @@ When you first log in, you'll see:
 #### Select Multiple Items
 
 **Select Individual Items:**
+
 - Click checkboxes one by one
 
 **Select All in View:**
+
 - Click the checkbox in the table header
 - All visible items are selected
 
 **Deselect:**
+
 - Click checkboxes again to uncheck
 - Or click **Select** button to exit select mode
 
@@ -397,6 +411,7 @@ When you first log in, you'll see:
 5. Action applies to all selected items
 
 **Tips:**
+
 - Use bulk actions to save time
 - Be careful with bulk delete - it can't be undone
 - You can select files from multiple folders
@@ -419,6 +434,7 @@ When you first log in, you'll see:
    - Action buttons on hover
 
 **Best for:**
+
 - Visual browsing
 - Identifying folders by color
 - Quick overview of many files
@@ -433,6 +449,7 @@ When you first log in, you'll see:
    - Inline editing
 
 **Best for:**
+
 - Detailed file information
 - Comparing multiple files
 - Editing data
@@ -444,6 +461,7 @@ When you first log in, you'll see:
 - Next time you log in, your preferred view loads automatically
 
 **Tips:**
+
 - Use grid view for organizing and browsing
 - Use table view for data work and editing
 - Switch views anytime based on your task
@@ -474,12 +492,14 @@ When you scan files or edit data, folder totals might not update automatically. 
 - File counts
 
 **When to Sync:**
+
 - After scanning multiple files
 - After editing area values
 - When totals look incorrect
 - Before generating reports
 
 **Tips:**
+
 - Sync parent folders to update entire branches
 - Syncing is fast and safe
 - You can sync as often as needed
@@ -492,18 +512,21 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### File Status
 
 **Unscanned**
+
 - File uploaded but not processed
 - No data extracted yet
 - Shows gray badge
 - Ready to scan
 
 **Scanned**
+
 - Entire document processed
 - Total areas extracted
 - Shows green badge
 - Ready for reports
 
 **Summary-Scanned**
+
 - Specific pages processed
 - Individual associations extracted
 - Shows colored badge
@@ -512,12 +535,14 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### Scan Types
 
 **Total Scan**
+
 - Processes all pages in the PDF
 - Extracts overall totals from last page
 - Best for complete documents
 - Takes longer to process
 
 **Summary Scan**
+
 - Processes only specified pages
 - Extracts individual associations (BSM data)
 - Best for targeted data extraction
@@ -526,27 +551,32 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### Data Fields
 
 **Total Area**
+
 - Sum of all land areas in the document
 - Measured in hectares
 - Main metric for reports
 
 **Irrigated Area**
+
 - Land with irrigation systems
 - Subset of total area
 - Important for water management
 
 **Planted Area**
+
 - Land currently planted with crops
 - Subset of total area
 - Indicates active cultivation
 
 **Confidence Score**
+
 - AI's certainty about extracted data
 - Shown as percentage (0-100%)
 - Higher is better
 - Below 80% may need verification
 
 **Usage**
+
 - Cost of AI processing
 - Shown in Philippine Pesos (₱)
 - Based on document size and complexity
@@ -555,11 +585,13 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### Associations
 
 **What are Associations?**
+
 - Individual entries extracted from summary scans
 - Usually represent BSM (Barangay Service Multipurpose) organizations
 - Each has its own name and area value
 
 **Association Data:**
+
 - **Name** - Organization or location identifier
 - **Total Area** - Land area for this association
 - **Confidence** - Accuracy score for this entry
@@ -573,12 +605,14 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### Document Preparation
 
 **Before Uploading:**
+
 - Ensure PDFs are clear and readable
 - Check that tables are properly formatted
 - Verify page numbers are correct
 - Remove any password protection
 
 **File Naming:**
+
 - Use descriptive names
 - Include dates or identifiers
 - Keep names consistent
@@ -587,11 +621,13 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### Scanning Strategy
 
 **Choose the Right Scan Type:**
+
 - Use **Total Scan** for complete documents with summary tables
 - Use **Summary Scan** for documents with detailed association lists
 - Scan specific pages to save time and cost
 
 **Page Selection:**
+
 - Know which pages contain your data
 - Use page ranges for efficiency (e.g., `1-5` instead of `1,2,3,4,5`)
 - Use `0` for the last page if you don't know the page count
@@ -599,12 +635,14 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### Data Verification
 
 **After Scanning:**
+
 - Check confidence scores (aim for 80% or higher)
 - Verify extracted data against original PDF
 - Edit any incorrect values immediately
 - Add notes for unusual data
 
 **Low Confidence?**
+
 - Re-scan with different page selection
 - Check PDF quality
 - Manually verify and edit data
@@ -613,12 +651,14 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### Organization
 
 **Folder Structure:**
+
 - Plan your hierarchy before uploading
 - Use consistent naming conventions
 - Group related documents together
 - Don't create too many nested levels
 
 **Regular Maintenance:**
+
 - Delete old or duplicate files
 - Update folder notes
 - Sync folder totals regularly
@@ -627,6 +667,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### Report Generation
 
 **For Best Reports:**
+
 - Scan all files before generating reports
 - Use consistent naming across files
 - Set up keyword formatting
@@ -642,6 +683,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Can't log in
 
 **Solutions:**
+
 1. Check your email and password are correct
 2. Ensure Caps Lock is off
 3. Clear your browser cache and cookies
@@ -655,6 +697,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Files won't upload
 
 **Solutions:**
+
 1. Check file is PDF format (not Word, Excel, etc.)
 2. Verify file size is under 50MB
 3. Check your internet connection
@@ -664,6 +707,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Upload is very slow
 
 **Solutions:**
+
 1. Check your internet speed
 2. Upload smaller batches of files
 3. Avoid uploading during peak hours
@@ -677,6 +721,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Scan fails or returns no data
 
 **Solutions:**
+
 1. Check PDF quality - is it clear and readable?
 2. Verify page numbers are correct
 3. Try scanning specific pages instead of entire document
@@ -686,6 +731,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Extracted data is incorrect
 
 **Solutions:**
+
 1. Check the confidence score (low score = less reliable)
 2. Verify you scanned the correct pages
 3. Look at the original PDF to confirm
@@ -695,6 +741,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Scan is taking too long
 
 **Solutions:**
+
 1. Large files take longer (be patient)
 2. Use summary scan instead of total scan
 3. Scan specific pages only
@@ -704,6 +751,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Low confidence scores
 
 **Solutions:**
+
 1. Use higher quality PDF scans
 2. Ensure tables are clearly formatted
 3. Check for clear text (not handwritten)
@@ -717,6 +765,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Can't edit data
 
 **Solutions:**
+
 1. Click the pencil icon to enter edit mode
 2. Ensure you have proper permissions
 3. Check if file is currently being scanned
@@ -726,6 +775,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Folder totals are wrong
 
 **Solutions:**
+
 1. Click the folder's three-dot menu
 2. Select "Sync Totals"
 3. Wait for recalculation to complete
@@ -735,6 +785,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Can't find a file
 
 **Solutions:**
+
 1. Check if you're in the correct folder
 2. Use the search function (if available)
 3. Check if file was moved or deleted
@@ -748,6 +799,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Report won't generate
 
 **Solutions:**
+
 1. Ensure all selected files are scanned
 2. Check that files have data (not empty)
 3. Try generating with fewer files
@@ -757,6 +809,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Report has missing data
 
 **Solutions:**
+
 1. Check if all files were scanned successfully
 2. Verify files have data before generating
 3. Look for files with low confidence scores
@@ -766,6 +819,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Report formatting is wrong
 
 **Solutions:**
+
 1. Check your keyword settings
 2. Verify template is correct format
 3. Try using default template
@@ -779,6 +833,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** System is slow
 
 **Solutions:**
+
 1. Wait for current scans to complete
 2. Close other browser tabs
 3. Clear browser cache
@@ -788,6 +843,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Browser freezes
 
 **Solutions:**
+
 1. Close and reopen the browser
 2. Clear browser cache and cookies
 3. Update your browser to latest version
@@ -801,6 +857,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Changes aren't saving
 
 **Solutions:**
+
 1. Check your internet connection
 2. Wait a moment and try again
 3. Refresh the page (you may lose unsaved changes)
@@ -810,6 +867,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Can't see certain features
 
 **Solutions:**
+
 1. Check your user role and permissions
 2. Refresh the page
 3. Clear browser cache
@@ -819,6 +877,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 **Problem:** Error messages appear
 
 **Solutions:**
+
 1. Read the error message carefully
 2. Try the suggested action
 3. Refresh the page
@@ -840,6 +899,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### When Contacting Support
 
 **Provide this information:**
+
 - Your name and email
 - What you were trying to do
 - What happened instead
@@ -850,6 +910,7 @@ When you scan files or edit data, folder totals might not update automatically. 
 ### Contact Information
 
 Reach out to your system administrator or IT support team for:
+
 - Login credential issues
 - Permission problems
 - Technical errors
@@ -896,34 +957,34 @@ Reach out to your system administrator or IT support team for:
 
 ### Common Actions
 
-| Action | Steps |
-|--------|-------|
-| Upload File | Click Upload → Select PDF → Configure → Upload & Scan |
-| Scan File | Select file → Click Scan → Choose type → Start |
-| Move File | Three-dot menu → Move File → Select folder → Move |
-| Edit Data | Click pencil icon → Enter new value → Press Enter |
+| Action          | Steps                                                                |
+| --------------- | -------------------------------------------------------------------- |
+| Upload File     | Click Upload → Select PDF → Configure → Upload & Scan                |
+| Scan File       | Select file → Click Scan → Choose type → Start                       |
+| Move File       | Three-dot menu → Move File → Select folder → Move                    |
+| Edit Data       | Click pencil icon → Enter new value → Press Enter                    |
 | Generate Report | Select files → Three-dot menu → Create Report → Configure → Generate |
-| Add Note | Click flag icon → Type note → Save |
-| Sync Folder | Three-dot menu → Sync Totals |
+| Add Note        | Click flag icon → Type note → Save                                   |
+| Sync Folder     | Three-dot menu → Sync Totals                                         |
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| Enter | Save edit |
-| Escape | Cancel edit |
-| Click checkbox | Select item |
+| Shortcut            | Action      |
+| ------------------- | ----------- |
+| Enter               | Save edit   |
+| Escape              | Cancel edit |
+| Click checkbox      | Select item |
 | Double-click folder | Open folder |
 
 ### Status Colors
 
-| Color | Meaning |
-|-------|---------|
-| Gray | Unscanned |
-| Green | Scanned (Total) |
-| Colored | Summary-Scanned |
-| Orange | Has notice |
-| Red | Error or warning |
+| Color   | Meaning          |
+| ------- | ---------------- |
+| Gray    | Unscanned        |
+| Green   | Scanned (Total)  |
+| Colored | Summary-Scanned  |
+| Orange  | Has notice       |
+| Red     | Error or warning |
 
 ---
 

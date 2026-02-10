@@ -1,3 +1,4 @@
+import "server-only";
 import { adminDb } from "@/lib/firebase/adminConfig";
 import type { Folder, PdfFile, Template, ReportSettings } from "@/types";
 import { Firestore } from "firebase-admin/firestore";
@@ -43,7 +44,9 @@ export async function updateFolder(
   await db().collection("folders").doc(folderId).update(data);
 }
 
-export async function deleteFolderWithContents(folderId: string): Promise<void> {
+export async function deleteFolderWithContents(
+  folderId: string,
+): Promise<void> {
   const batch = db().batch();
 
   const subfolders = await db()
@@ -72,7 +75,7 @@ export async function deleteFolderWithContents(folderId: string): Promise<void> 
 export async function getFilesByFolder(
   userId: string,
   folderId: string | null,
-  limit = 50,
+  limit?: number,
 ): Promise<PdfFile[]> {
   let query = db().collection("pdfs").where("userId", "==", userId);
 
@@ -82,7 +85,13 @@ export async function getFilesByFolder(
     query = query.where("folderId", "==", null);
   }
 
-  const snapshot = await query.orderBy("uploadedAt", "desc").limit(limit).get();
+  query = query.orderBy("uploadedAt", "desc");
+  
+  if (limit && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const snapshot = await query.get();
 
   return snapshot.docs.map((doc) => ({
     id: doc.id,
@@ -139,11 +148,11 @@ export async function deleteFileWithRollback(
   userId: string,
 ): Promise<void> {
   const file = await getFileById(fileId);
-  
+
   if (!file) {
     throw new Error("file not found");
   }
-  
+
   if (file.userId !== userId) {
     throw new Error("not authorized");
   }
@@ -191,7 +200,10 @@ export async function updateReportSettings(
   userId: string,
   data: Partial<ReportSettings>,
 ): Promise<void> {
-  await db().collection("reportSettings").doc(userId).set(data, { merge: true });
+  await db()
+    .collection("reportSettings")
+    .doc(userId)
+    .set(data, { merge: true });
 }
 
 export async function getUsageMetrics() {

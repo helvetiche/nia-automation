@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOperator } from "@/lib/auth/guards";
-import { createFileBatch, getFolderById } from "@/lib/services/firestoreService";
+import {
+  createFileBatch,
+  getFolderById,
+} from "@/lib/services/firestoreService";
 import {
   sanitizeFileName,
   sanitizeFolderId,

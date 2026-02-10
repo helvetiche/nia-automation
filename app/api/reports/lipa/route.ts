@@ -194,10 +194,10 @@ export async function GET(request: NextRequest) {
     const isDry = seasonUpper.includes("DRY");
     const isWet = seasonUpper.includes("WET");
     const seasonType = isDry ? "DRY" : isWet ? "WET" : "SEASON";
-    
+
     const yearMatch = season.match(/\d{4}/);
     const year = yearMatch ? yearMatch[0] : new Date().getFullYear();
-    
+
     const filename = `LIPA ${seasonType} ${year}.xlsx`;
 
     return new NextResponse(Buffer.from(buffer), {

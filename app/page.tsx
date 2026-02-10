@@ -42,13 +42,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative">
-      <div 
+      <div
         className="absolute inset-0 opacity-60"
         style={{
           backgroundImage: "url('/bg.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          backgroundRepeat: "no-repeat"
+          backgroundRepeat: "no-repeat",
         }}
       />
       <div className="w-full max-w-md relative z-10">
@@ -62,7 +62,9 @@ export default function Home() {
                 className="w-16 h-16 object-cover flex-shrink-0"
               />
               <h1 className="text-3xl font-bold text-gray-800">
-                Operation and<br />Maintenance
+                Operation and
+                <br />
+                Maintenance
               </h1>
             </div>
             <p className="text-sm text-gray-600">
@@ -122,15 +124,19 @@ export default function Home() {
             >
               {loading ? "Signing in..." : "Sign In"}
               {!loading && (
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  strokeWidth={2} 
-                  stroke="currentColor" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
                   className="w-5 h-5"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
                 </svg>
               )}
             </button>

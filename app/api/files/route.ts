@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const rawLimit = request.nextUrl.searchParams.get("limit");
 
     const folderId = sanitizeFolderId(rawFolderId);
-    const limit = sanitizeNumber(rawLimit, 1, 100);
+    const limit = rawLimit ? sanitizeNumber(rawLimit, 1, 1000) : undefined;
 
     const files = await getFilesByFolder(userId, folderId, limit);
 

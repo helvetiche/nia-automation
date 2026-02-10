@@ -14,7 +14,7 @@ interface AuthResult {
 export async function verifyUserToken(token: string): Promise<AuthResult> {
   try {
     const decodedToken: DecodedIdToken = await adminAuth().verifyIdToken(token);
-    
+
     return {
       success: true,
       user: {

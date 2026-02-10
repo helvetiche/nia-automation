@@ -1,3 +1,5 @@
+"use client";
+
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { clientEnv } from "@/lib/config/clientEnv";

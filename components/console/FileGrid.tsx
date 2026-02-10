@@ -533,7 +533,7 @@ export default function FileGrid({
 
       const contentDisposition = response.headers.get("content-disposition");
       let filename = `LIPA_Report_${Date.now()}.xlsx`;
-      
+
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
         if (filenameMatch && filenameMatch[1]) {
@@ -681,8 +681,8 @@ export default function FileGrid({
           onRefresh={onRefresh}
           isSelectMode={isSelectMode}
           selectedPdfs={selectedItems}
-          onToggleSelectPdf={(id) => toggleSelectItem(id)}
-          onToggleSelectAllPdfs={(ids) => toggleSelectAllItems(ids)}
+          onToggleSelectPdf={(id: string) => toggleSelectItem(id)}
+          onToggleSelectAllPdfs={(ids: string[]) => toggleSelectAllItems(ids)}
           loading={loading}
           currentlyScanning={currentlyScanning}
           estimatedTimeRemaining={estimatedTimeRemaining}
