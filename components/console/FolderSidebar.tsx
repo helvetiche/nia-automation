@@ -5,6 +5,7 @@ import type { Folder } from "@/types";
 import {
   CaretRight,
   CaretDown,
+  CaretLeft,
   Folder as FolderIcon,
   FolderOpen,
   Archive,
@@ -35,6 +36,8 @@ interface FolderSidebarProps {
   onUploadFile: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const ICON_MAP: Record<string, React.ComponentType> = {
@@ -97,6 +100,8 @@ export default function FolderSidebar({
   onUploadFile,
   searchQuery,
   onSearchChange,
+  isCollapsed,
+  onToggleCollapse,
 }: FolderSidebarProps) {
   const computedExpandedFolders = useMemo(() => {
     if (!searchQuery) {
@@ -244,56 +249,80 @@ export default function FolderSidebar({
   };
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-screen overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-900">Folders</h2>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={onCreateFolder}
-              className="p-1.5 rounded hover:bg-emerald-100 text-emerald-700 transition"
-              title="New Folder"
-            >
-              <FolderPlus weight="regular" className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onUploadFile}
-              className="p-1.5 rounded hover:bg-emerald-100 text-emerald-700 transition"
-              title="New File"
-            >
-              <FilePlus weight="regular" className="w-4 h-4" />
-            </button>
+    <div className="relative flex h-screen">
+      <div
+        className={`bg-white border-r border-gray-200 flex flex-col h-screen overflow-hidden transition-all duration-300 ease-in-out ${
+          isCollapsed ? "w-0" : "w-80"
+        }`}
+      >
+        <div className="px-4 py-3 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900">Folders</h2>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onCreateFolder}
+                className="p-1.5 rounded hover:bg-emerald-100 text-emerald-700 transition"
+                title="New Folder"
+              >
+                <FolderPlus weight="regular" className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onUploadFile}
+                className="p-1.5 rounded hover:bg-emerald-100 text-emerald-700 transition"
+                title="New File"
+              >
+                <FilePlus weight="regular" className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-300 rounded px-3 py-2">
+            <MagnifyingGlass
+              weight="regular"
+              className="w-4 h-4 text-gray-500"
+            />
+            <input
+              type="text"
+              placeholder="Search files..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="outline-none text-sm text-gray-700 bg-transparent flex-1"
+            />
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-gray-50 border border-gray-300 rounded px-3 py-2">
-          <MagnifyingGlass weight="regular" className="w-4 h-4 text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search files..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="outline-none text-sm text-gray-700 bg-transparent flex-1"
-          />
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-2 py-2">
+            <div
+              className={`flex items-center gap-2 px-3 py-2.5 rounded cursor-pointer transition ${
+                currentFolder === null
+                  ? "bg-emerald-100 text-emerald-900"
+                  : "hover:bg-gray-100 text-gray-700"
+              }`}
+              onClick={() => onSelectFolder(null)}
+            >
+              <House weight="fill" className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm font-medium">Root</span>
+            </div>
+
+            <div className="mt-2">{renderFolderTree()}</div>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-2 py-2">
-          <div
-            className={`flex items-center gap-2 px-3 py-2.5 rounded cursor-pointer transition ${
-              currentFolder === null
-                ? "bg-emerald-100 text-emerald-900"
-                : "hover:bg-gray-100 text-gray-700"
-            }`}
-            onClick={() => onSelectFolder(null)}
-          >
-            <House weight="fill" className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">Root</span>
-          </div>
-
-          <div className="mt-2">{renderFolderTree()}</div>
-        </div>
-      </div>
+      <button
+        onClick={onToggleCollapse}
+        className={`fixed top-24 z-10 bg-white border border-gray-200 rounded-full p-1.5 shadow-sm hover:bg-gray-50 transition-all hover:shadow-md ${
+          isCollapsed ? "left-2" : "left-[308px]"
+        }`}
+        style={{ transition: "left 300ms ease-in-out" }}
+        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isCollapsed ? (
+          <CaretRight weight="bold" className="w-4 h-4 text-gray-600" />
+        ) : (
+          <CaretLeft weight="bold" className="w-4 h-4 text-gray-600" />
+        )}
+      </button>
     </div>
   );
 }

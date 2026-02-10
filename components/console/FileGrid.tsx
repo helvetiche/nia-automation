@@ -61,6 +61,7 @@ interface FileGridProps {
   loading?: boolean;
   currentlyScanning: string | null;
   estimatedTimeRemaining: number;
+  sidebarCollapsed?: boolean;
 }
 
 const ICON_MAP: Record<string, React.ComponentType> = {
@@ -162,6 +163,7 @@ export default function FileGrid({
   loading = false,
   currentlyScanning,
   estimatedTimeRemaining,
+  sidebarCollapsed = false,
 }: FileGridProps) {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -565,9 +567,24 @@ export default function FileGrid({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6" onContextMenu={openContextMenu}>
+    <div 
+      className="flex-1 overflow-y-auto p-6 relative" 
+      onContextMenu={openContextMenu}
+      style={{
+        backgroundImage: `
+          linear-gradient(to right, rgba(6, 78, 59, 0.1) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(6, 78, 59, 0.1) 1px, transparent 1px)
+        `,
+        backgroundSize: '100px 100px',
+        backgroundPosition: '0 0'
+      }}
+    >
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm">
+        <div
+          className={`flex items-center gap-2 text-sm transition-all duration-300 ${
+            sidebarCollapsed ? "ml-12" : "ml-0"
+          }`}
+        >
           <button
             onClick={() => onSelectFolder(null)}
             className="text-emerald-800 hover:underline"

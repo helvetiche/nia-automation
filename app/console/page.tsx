@@ -50,8 +50,20 @@ export default function ConsolePage() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
-        <FolderBrowser viewMode={viewMode} onViewModeChange={updateViewMode} />
+      <div className="min-h-screen bg-gray-50 relative">
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgb(6 78 59) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(6 78 59) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px'
+          }}
+        />
+        <div className="relative z-10">
+          <FolderBrowser viewMode={viewMode} onViewModeChange={updateViewMode} />
+        </div>
       </div>
     </ErrorBoundary>
   );

@@ -200,12 +200,6 @@ export default function FileList({
       file.summaryData &&
       file.summaryData.length > 0,
   );
-  
-  console.log("Total localFiles:", localFiles.length);
-  console.log("Summary scanned files:", localFiles.filter(f => f.status === "summary-scanned").length);
-  console.log("Summary files with data:", summaryFiles.length);
-  console.log("Summary files:", summaryFiles.map(f => ({ name: f.name, status: f.status, hasSummaryData: !!f.summaryData, summaryDataLength: f.summaryData?.length })));
-  
   const regularFiles = localFiles.filter(
     (file) =>
       !movedPdfs[file.id] &&

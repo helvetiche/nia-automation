@@ -19,6 +19,7 @@ interface FolderBrowserProps {
 const STORAGE_KEYS = {
   viewMode: "nia-view-mode",
   currentFolder: "nia-current-folder",
+  sidebarCollapsed: "nia-sidebar-collapsed",
 };
 
 export default function FolderBrowser({
@@ -38,6 +39,11 @@ export default function FolderBrowser({
     "name-asc",
   );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saved = localStorage.getItem(STORAGE_KEYS.sidebarCollapsed);
+    return saved === "true";
+  });
 
   const [allFiles, setAllFiles] = useState<PdfFile[]>([]);
   const [currentlyScanning] = useState<string | null>(null);
@@ -221,13 +227,22 @@ export default function FolderBrowser({
     exportToExcel(null, fileIds);
   };
 
+  const toggleSidebar = () => {
+    const newState = !sidebarCollapsed;
+    setSidebarCollapsed(newState);
+    localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, String(newState));
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Ribbon refreshTrigger={refreshTrigger} />
 
       <div className="flex flex-1 overflow-hidden">
         {loading && folders.length === 0 ? (
-          <FolderSidebarSkeleton />
+          <FolderSidebarSkeleton
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
+          />
         ) : (
           <FolderSidebar
             folders={folders}
@@ -237,6 +252,8 @@ export default function FolderBrowser({
             onUploadFile={() => setShowUpload(true)}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
           />
         )}
 
@@ -253,6 +270,7 @@ export default function FolderBrowser({
           loading={loading}
           currentlyScanning={currentlyScanning}
           estimatedTimeRemaining={estimatedTimeRemaining}
+          sidebarCollapsed={sidebarCollapsed}
         />
       </div>
 
